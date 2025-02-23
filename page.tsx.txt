@@ -1,0 +1,11 @@
+import { NFTGrid } from "@/components/nft-grid"
+
+export default function BrowsePage() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Browse NFTs</h1>
+      <NFTGrid />
+    </div>
+  )
+}
+
