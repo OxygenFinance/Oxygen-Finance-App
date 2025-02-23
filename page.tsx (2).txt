@@ -1,0 +1,23 @@
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+
+export default function Home() {
+  return (
+    <div className="flex flex-col items-center justify-center space-y-6">
+      <h1 className="text-4xl font-bold text-center">Welcome to Oxygen Finance</h1>
+      <p className="text-xl text-center max-w-2xl">
+        Discover and collect unique video-animated comic NFTs. Empower creators, engage with exclusive content, and
+        redefine digital storytelling.
+      </p>
+      <div className="flex space-x-4">
+        <Button asChild>
+          <Link href="/create">Create Comic NFT</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/browse">Browse Comics</Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+

@@ -1,0 +1,71 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+export function CreateContentForm() {
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [price, setPrice] = useState("")
+  const [genre, setGenre] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // TODO: Implement form submission logic with Polygon integration
+    console.log("Form submitted", { title, description, price, genre, file })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium mb-1">
+          Comic Title
+        </label>
+        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+      </div>
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium mb-1">
+          Description
+        </label>
+        <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required />
+      </div>
+      <div>
+        <label htmlFor="genre" className="block text-sm font-medium mb-1">
+          Genre
+        </label>
+        <Select onValueChange={setGenre}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select genre" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="action">Action</SelectItem>
+            <SelectItem value="fantasy">Fantasy</SelectItem>
+            <SelectItem value="sci-fi">Sci-Fi</SelectItem>
+            <SelectItem value="romance">Romance</SelectItem>
+            <SelectItem value="horror">Horror</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label htmlFor="price" className="block text-sm font-medium mb-1">
+          Price (MATIC)
+        </label>
+        <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+      </div>
+      <div>
+        <label htmlFor="file" className="block text-sm font-medium mb-1">
+          Video-Animated Comic File
+        </label>
+        <Input id="file" type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
+      </div>
+      <Button type="submit">Create Comic NFT</Button>
+    </form>
+  )
+}
+

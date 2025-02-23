@@ -1,0 +1,40 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+// Mock data for Comic NFTs
+const mockComicNFTs = [
+  { id: 1, title: "Cyberpunk Chronicles", creator: "NeoArtist", price: "50 MATIC", genre: "Sci-Fi" },
+  { id: 2, title: "Mystic Realms", creator: "FantasyPen", price: "30 MATIC", genre: "Fantasy" },
+  { id: 3, title: "Noir City", creator: "ShadowInk", price: "40 MATIC", genre: "Mystery" },
+]
+
+export function NFTGrid() {
+  const [nfts] = useState(mockComicNFTs)
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {nfts.map((nft) => (
+        <Card key={nft.id} className="overflow-hidden">
+          <div className="aspect-video bg-muted"></div>
+          <CardHeader>
+            <CardTitle>{nft.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Creator: {nft.creator}</p>
+            <p>Price: {nft.price}</p>
+            <Badge>{nft.genre}</Badge>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button>Preview</Button>
+            <Button variant="outline">Mint NFT</Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  )
+}
+

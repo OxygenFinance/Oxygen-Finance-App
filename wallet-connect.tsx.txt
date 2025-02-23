@@ -1,0 +1,57 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { ethers } from "ethers"
+
+export function WalletConnect() {
+  const [address, setAddress] = useState<string | null>(null)
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        // Request account access
+        await window.ethereum.request({ method: "eth_requestAccounts" })
+        const provider = new ethers.providers.Web3Provider(window.ethereum)
+        const signer = provider.getSigner()
+        const address = await signer.getAddress()
+        setAddress(address)
+
+        // Switch to Polygon network
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0x89", // 137 in hexadecimal
+              chainName: "Polygon Mainnet",
+              nativeCurrency: {
+                name: "MATIC",
+                symbol: "MATIC",
+                decimals: 18,
+              },
+              rpcUrls: ["https://polygon-rpc.com/"],
+              blockExplorerUrls: ["https://polygonscan.com/"],
+            },
+          ],
+        })
+      } catch (error) {
+        console.error("Failed to connect to wallet:", error)
+      }
+    } else {
+      console.log("Please install MetaMask!")
+    }
+  }
+
+  return (
+    <div>
+      {address ? (
+        <Button variant="outline">
+          {address.slice(0, 6)}...{address.slice(-4)}
+        </Button>
+      ) : (
+        <Button onClick={connectWallet}>Connect Wallet</Button>
+      )}
+    </div>
+  )
+}
+
