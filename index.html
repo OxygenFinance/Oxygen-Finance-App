@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oxygen Finance</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">Oxygen Finance</h1>
+            <nav class="nav">
+                <a href="gallery.html" class="nav-link">Gallery</a>
+                <a href="creators.html" class="nav-link">Creators</a>
+                <a href="create.html" class="nav-link">Create</a>
+                <button id="profileBtn" class="profile-button hidden">
+                    <span class="profile-icon">👤</span>
+                    Profile
+                </button>
+                <button id="connectWalletBtn" class="connect-button">Connect Wallet</button>
+                <button id="disconnectWalletBtn" class="disconnect-button hidden">Disconnect</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="hero">
+        <div class="container">
+            <h2 class="hero-title">Digital Video <span class="gradient-text">Hub</span></h2>
+            <p class="hero-description">Step into our virtual gallery showcasing the finest Nfts-digital video ranging from arts to comics and clips from creators around the world</p>
+            <button id="enterGalleryBtn" class="enter-button">Enter Gallery →</button>
+        </div>
+    </main>
+
+    <section class="featured-artists">
+        <div class="container">
+            <h2 class="section-title">Featured Artists</h2>
+            <div class="artists-grid">
+                <div class="artist-card">
+                    <div class="artist-image">
+                        <img src="placeholder.svg" alt="Neon Dreams">
+                    </div>
+                    <div class="artist-info">
+                        <h3>Neon Dreams</h3>
+                        <p>Digital artist specializing in cyberpunk and futuristic cityscapes</p>
+                        <a href="creator.html?id=1" class="view-button">View Gallery</a>
+                    </div>
+                </div>
+                <!-- More artist cards would go here -->
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3 class="logo">Oxygen Finance</h3>
+                    <p>The future of digital video galleries</p>
+                </div>
+                <div class="footer-links">
+                    <a href="gallery.html">Gallery</a>
+                    <a href="creators.html">Creators</a>
+                    <a href="about.html">About</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <p>&copy; 2023 Oxygen Finance. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="wallet.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

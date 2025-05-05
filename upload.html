@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video - Oxygen Finance</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="upload.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">Oxygen Finance</h1>
+            <nav class="nav">
+                <a href="gallery.html" class="nav-link">Gallery</a>
+                <a href="creators.html" class="nav-link">Creators</a>
+                <a href="create.html" class="nav-link">Create</a>
+                <button id="profileBtn" class="profile-button hidden">
+                    <span class="profile-icon">👤</span>
+                    Profile
+                </button>
+                <button id="connectWalletBtn" class="connect-button">Connect Wallet</button>
+                <button id="disconnectWalletBtn" class="disconnect-button hidden">Disconnect</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="upload-container">
+        <div class="container">
+            <div class="upload-card">
+                <h2 class="upload-title">Upload and Mint Video NFT</h2>
+                <form id="uploadForm" class="upload-form">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" required class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" required class="form-textarea"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="price">Price (MATIC)</label>
+                        <input type="number" id="price" step="0.01" required class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="supply">Supply</label>
+                        <input type="number" id="supply" min="1" value="1" required class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="royalty">Royalty Percentage</label>
+                        <input type="number" id="royalty" min="0" max="100" value="10" required class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="file">Video File</label>
+                        <input type="file" id="file" accept="video/*" required class="form-input file-input">
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="upload-button">Upload and Mint NFT</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3 class="logo">Oxygen Finance</h3>
+                    <p>The future of digital art galleries</p>
+                </div>
+                <div class="footer-links">
+                    <a href="gallery.html">Gallery</a>
+                    <a href="creators.html">Creators</a>
+                    <a href="about.html">About</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <p>&copy; 2023 Oxygen Finance. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="wallet.js"></script>
+    <script src="upload.js"></script>
+</body>
+</html>
