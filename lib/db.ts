@@ -297,6 +297,19 @@ export async function deleteComment(id: number): Promise<boolean> {
   }
 }
 
+// These functions are needed for compatibility with existing code
+export async function addComment(artworkId: number, userId: number, content: string): Promise<Comment | null> {
+  return createComment({
+    artwork_id: artworkId,
+    user_id: userId,
+    content,
+  })
+}
+
+export async function getComments(artworkId: number): Promise<Comment[]> {
+  return getCommentsByArtwork(artworkId)
+}
+
 // Like functions
 export async function hasUserLikedArtwork(userId: number, artworkId: number): Promise<boolean> {
   try {

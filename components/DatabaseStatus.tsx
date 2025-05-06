@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 
-export default function DatabaseStatus() {
+export function DatabaseStatus() {
   const [status, setStatus] = useState<"loading" | "connected" | "error">("loading")
   const [message, setMessage] = useState<string>("")
   const [tables, setTables] = useState<string[]>([])
@@ -81,3 +81,5 @@ export default function DatabaseStatus() {
     </Card>
   )
 }
+
+export default DatabaseStatus
