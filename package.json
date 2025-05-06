@@ -71,7 +71,8 @@
     "next-auth": "latest",
     "child_process": "latest",
     "@neondatabase/serverless": "latest",
-    "dotenv": "latest"
+    "dotenv": "latest",
+    "path": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

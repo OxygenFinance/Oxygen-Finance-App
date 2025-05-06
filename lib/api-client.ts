@@ -89,8 +89,21 @@ export async function unlikeArtwork(userId: number, artworkId: number): Promise<
 }
 
 // Follow functions
-export async function isFollowing(followerId: number, followingId: number): Promise<boolean> {
-  return await db.isUserFollowing(followerId, followingId)
+export const isFollowing = async (userId: number | null, followingId: number): Promise<boolean> => {
+  if (!userId) return false
+
+  try {
+    const result = await db.sql`
+      SELECT EXISTS(
+        SELECT 1 FROM follows 
+        WHERE follower_id = ${userId} AND following_id = ${followingId}
+      ) as is_following
+    `
+    return result[0].is_following
+  } catch (error) {
+    console.error("Error checking if following:", error)
+    return false
+  }
 }
 
 export async function followUser(followerId: number, followingId: number): Promise<boolean> {

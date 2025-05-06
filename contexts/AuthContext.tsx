@@ -161,51 +161,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await createWallet()
       }
 
-      // Update user with wallet address
-      if (user) {
-        const updatedUser = await updateUser(user.id, { wallet_address: address })
-        if (updatedUser) {
-          setUser(updatedUser)
-        } else {
-          setUser({
-            ...user,
-            wallet_address: address,
-          })
-        }
-      } else {
-        // Try to get user from database by wallet address
+      if (!address) {
+        console.error("Failed to get wallet address after creation")
+        return
+      }
+
+      console.log("Connecting wallet with address:", address)
+
+      // Try to get user from database by wallet address
+      let dbUser = null
+      try {
+        dbUser = await getUserByWalletAddress(address)
+        console.log("Found existing user:", dbUser)
+      } catch (error) {
+        console.error("Error getting user by wallet address:", error)
+      }
+
+      // If user doesn't exist, create one
+      if (!dbUser) {
         try {
-          let dbUser = await getUserByWalletAddress(address || "")
-
-          // If user doesn't exist, create one
-          if (!dbUser && address) {
-            dbUser = await createUser({
-              wallet_address: address,
-              name: `User ${address.substring(0, 6)}`,
-            })
-          }
-
-          if (dbUser) {
-            setUser(dbUser)
-          } else {
-            // Fallback if database operations fail
-            setUser({
-              id: 0,
-              wallet_address: address,
-              name: `User ${address.substring(0, 6)}`,
-              created_at: new Date(),
-            })
-          }
-        } catch (error) {
-          console.error("Error getting/creating user:", error)
-          // Fallback
-          setUser({
-            id: 0,
+          console.log("Creating new user with wallet address:", address)
+          dbUser = await createUser({
             wallet_address: address,
             name: `User ${address.substring(0, 6)}`,
-            created_at: new Date(),
           })
+          console.log("Created new user:", dbUser)
+        } catch (error) {
+          console.error("Error creating new user:", error)
         }
+      }
+
+      // Update user state
+      if (dbUser) {
+        setUser(dbUser)
+      } else {
+        // Fallback if database operations fail
+        setUser({
+          id: 0,
+          wallet_address: address,
+          name: `User ${address.substring(0, 6)}`,
+          created_at: new Date(),
+        })
       }
 
       setStatus("authenticated")

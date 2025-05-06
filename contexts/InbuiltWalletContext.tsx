@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { ethers } from "ethers"
+import { createUser, getUserByWalletAddress } from "@/lib/api-client"
 
 // Define network configurations
 const networks: Record<number, Network> = {
@@ -46,8 +47,8 @@ interface InbuiltWalletContextType {
   isRecoveryEnabled: boolean
   showPrivateKey: boolean
   isRefreshing: boolean
-  createWallet: () => Promise<ethers.Wallet>
-  importWallet: (privateKey: string) => Promise<ethers.Wallet>
+  createWallet: () => Promise<ethers.Wallet | string | undefined>
+  importWallet: (privateKey: string) => Promise<ethers.Wallet | string | undefined>
   disconnectWallet: () => void
   updateBalance: (address: string) => Promise<void>
   setActiveNetwork: (network: Network) => void
@@ -115,68 +116,90 @@ export function InbuiltWalletProvider({ children }: { children: ReactNode }) {
 
   const createWallet = async () => {
     try {
-      // Create a new wallet
-      const newWallet = ethers.Wallet.createRandom()
+      // Generate a new wallet
+      const wallet = ethers.Wallet.createRandom()
+      const privateKey = wallet.privateKey
+      const address = wallet.address
 
-      // Save to state
-      setWallet(newWallet)
-      setAddress(newWallet.address)
-      setInbuiltAddress(newWallet.address)
-      setPrivateKey(newWallet.privateKey)
+      // Save to local storage
+      localStorage.setItem("inbuiltWalletPrivateKey", privateKey)
+      localStorage.setItem("inbuiltWalletAddress", address)
+
+      // Set state
+      setPrivateKey(privateKey)
+      setInbuiltAddress(address)
       setHasInbuiltWallet(true)
-      setIsRecoveryEnabled(false)
+      setShowPrivateKey(false)
 
-      // Save to localStorage
-      localStorage.setItem(
-        "inbuiltWallet",
-        JSON.stringify({
-          address: newWallet.address,
-          privateKey: newWallet.privateKey,
-        }),
-      )
+      // Create user in database if it doesn't exist
+      try {
+        // Check if user already exists
+        const existingUser = await getUserByWalletAddress(address)
 
-      // Set default network to Polygon
-      localStorage.setItem(`${newWallet.address}-network`, "137")
+        if (!existingUser) {
+          // Create new user
+          await createUser({
+            wallet_address: address,
+            name: `User ${address.substring(0, 6)}`,
+          })
+          console.log("Created new user in database for wallet:", address)
+        }
+      } catch (error) {
+        console.error("Error creating user in database:", error)
+      }
 
-      // Fetch balance
-      updateBalance(newWallet.address)
+      // Update balance
+      await updateBalance(address)
 
-      return newWallet
+      return address
     } catch (error) {
       console.error("Error creating wallet:", error)
       throw error
     }
   }
 
-  const importWallet = async (privateKey: string) => {
+  const importWallet = async (importedPrivateKey: string) => {
     try {
+      // Validate private key
+      if (!importedPrivateKey.startsWith("0x") || importedPrivateKey.length !== 66) {
+        throw new Error("Invalid private key format")
+      }
+
       // Create wallet from private key
-      const importedWallet = new ethers.Wallet(privateKey)
+      const wallet = new ethers.Wallet(importedPrivateKey)
+      const address = wallet.address
 
-      // Save to state
-      setWallet(importedWallet)
-      setAddress(importedWallet.address)
-      setInbuiltAddress(importedWallet.address)
-      setPrivateKey(importedWallet.privateKey)
+      // Save to local storage
+      localStorage.setItem("inbuiltWalletPrivateKey", importedPrivateKey)
+      localStorage.setItem("inbuiltWalletAddress", address)
+
+      // Set state
+      setPrivateKey(importedPrivateKey)
+      setInbuiltAddress(address)
       setHasInbuiltWallet(true)
-      setIsRecoveryEnabled(false)
+      setShowPrivateKey(false)
 
-      // Save to localStorage
-      localStorage.setItem(
-        "inbuiltWallet",
-        JSON.stringify({
-          address: importedWallet.address,
-          privateKey: importedWallet.privateKey,
-        }),
-      )
+      // Create user in database if it doesn't exist
+      try {
+        // Check if user already exists
+        const existingUser = await getUserByWalletAddress(address)
 
-      // Set default network to Polygon
-      localStorage.setItem(`${importedWallet.address}-network`, "137")
+        if (!existingUser) {
+          // Create new user
+          await createUser({
+            wallet_address: address,
+            name: `User ${address.substring(0, 6)}`,
+          })
+          console.log("Created new user in database for imported wallet:", address)
+        }
+      } catch (error) {
+        console.error("Error creating user in database:", error)
+      }
 
-      // Fetch balance
-      updateBalance(importedWallet.address)
+      // Update balance
+      await updateBalance(address)
 
-      return importedWallet
+      return address
     } catch (error) {
       console.error("Error importing wallet:", error)
       throw error

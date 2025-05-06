@@ -8,18 +8,24 @@ export async function GET(request: Request) {
     const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : undefined
     const offset = searchParams.get("offset") ? Number.parseInt(searchParams.get("offset")!) : undefined
 
+    console.log("Fetching artworks with params:", { creatorId, limit, offset })
+
+    let artworks
     if (creatorId) {
-      const creatorIdNum = Number.parseInt(creatorId)
+      // Parse the creator ID as a number
+      const creatorIdNum = Number.parseInt(creatorId, 10)
+
       if (isNaN(creatorIdNum)) {
-        return NextResponse.json({ error: "Invalid creator ID" }, { status: 400 })
+        return NextResponse.json({ error: "Invalid creator ID format" }, { status: 400 })
       }
 
-      const artworks = await getArtworksByCreator(creatorIdNum)
-      return NextResponse.json(artworks)
+      artworks = await getArtworksByCreator(creatorIdNum)
     } else {
-      const artworks = await getAllArtworks(limit, offset)
-      return NextResponse.json(artworks)
+      artworks = await getAllArtworks(limit, offset)
     }
+
+    console.log(`Found ${artworks.length} artworks`)
+    return NextResponse.json(artworks)
   } catch (error) {
     console.error("Error fetching artworks:", error)
     return NextResponse.json({ error: "Failed to fetch artworks" }, { status: 500 })
@@ -29,6 +35,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    console.log("Creating artwork with data:", body)
 
     // Check for required fields
     if (!body.title || !body.media_url || !body.creator_id) {
@@ -41,6 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to create artwork" }, { status: 500 })
     }
 
+    console.log("Artwork created successfully:", newArtwork)
     return NextResponse.json(newArtwork, { status: 201 })
   } catch (error) {
     console.error("Error creating artwork:", error)

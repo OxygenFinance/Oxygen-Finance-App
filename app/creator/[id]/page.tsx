@@ -1,11 +1,5 @@
 "use client"
 
-import { AvatarFallback } from "@/components/ui/avatar"
-
-import { AvatarImage } from "@/components/ui/avatar"
-
-import { Avatar } from "@/components/ui/avatar"
-
 import type React from "react"
 
 import { useState, useEffect } from "react"
@@ -15,9 +9,9 @@ import { motion } from "framer-motion"
 import { Heart, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useWallet } from "@/contexts/WalletContext"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/AuthContext"
-import { fetchFollowCounts, followUser, unfollowUser, isFollowing } from "@/lib/api-client"
+import { api } from "@/lib/api-client"
 import { useComments } from "@/hooks/useStorage"
 import { toast } from "react-toastify"
 
@@ -31,22 +25,22 @@ interface Comment {
 }
 
 interface Artwork {
-  id: string
+  id: number
   title: string
   description?: string
-  image?: string
-  content_url?: string
-  creator_id: string
-  price?: string
-  likes: number
+  media_url: string
+  thumbnail_url?: string
+  creator_id: number
+  token_id?: string
+  contract_address?: string
   created_at: Date
+  likes?: number
 }
 
 export default function CreatorProfilePage() {
   const params = useParams()
   const creatorId = params.id as string
-  const { address, connectWallet } = useWallet()
-  const { user } = useAuth()
+  const { user, connectWallet } = useAuth()
   const [creator, setCreator] = useState<any>(null)
   const [artworks, setArtworks] = useState<Artwork[]>([])
   const [followers, setFollowers] = useState<any[]>([])
@@ -56,21 +50,24 @@ export default function CreatorProfilePage() {
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState("")
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
-  const { comments, addComment, updateComment, deleteComment } = useComments(creatorId)
-  const [video, setVideo] = useState<Artwork | null>(null) // Initialize video state
+  const { comments, addComment } = useComments(creatorId)
+  const [video, setVideo] = useState<Artwork | null>(null)
 
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        const response = await fetch(`/api/users/${creatorId}`, {
-          cache: "no-store",
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCreator(data)
-        } else {
-          console.error("Failed to fetch creator:", await response.text())
+        console.log("Fetching creator with ID:", creatorId)
+        const response = await fetch(`/api/users/${creatorId}`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Failed to fetch creator:", errorText)
+          return
         }
+
+        const data = await response.json()
+        console.log("Creator data:", data)
+        setCreator(data)
       } catch (error) {
         console.error("Error fetching creator:", error)
       }
@@ -78,18 +75,22 @@ export default function CreatorProfilePage() {
 
     const fetchArtworks = async () => {
       try {
-        const response = await fetch(`/api/artworks?creatorId=${creatorId}`, {
-          cache: "no-store",
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setArtworks(data)
-          // Assuming the first artwork is the "video" for comments
-          if (data.length > 0) {
-            setVideo(data[0])
-          }
-        } else {
-          console.error("Failed to fetch artworks:", await response.text())
+        console.log("Fetching artworks for creator ID:", creatorId)
+        const response = await fetch(`/api/artworks?creatorId=${creatorId}`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Failed to fetch artworks:", errorText)
+          return
+        }
+
+        const data = await response.json()
+        console.log("Artworks data:", data)
+        setArtworks(data)
+
+        // Assuming the first artwork is the "video" for comments
+        if (data.length > 0) {
+          setVideo(data[0])
         }
       } catch (error) {
         console.error("Error fetching artworks:", error)
@@ -98,15 +99,18 @@ export default function CreatorProfilePage() {
 
     const fetchFollowersData = async () => {
       try {
-        const response = await fetch(`/api/follows?userId=${creatorId}&type=followers`, {
-          cache: "no-store",
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setFollowers(data)
-        } else {
-          console.error("Failed to fetch followers:", await response.text())
+        console.log("Fetching followers for creator ID:", creatorId)
+        const response = await fetch(`/api/follows?userId=${creatorId}&type=followers`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Failed to fetch followers:", errorText)
+          return
         }
+
+        const data = await response.json()
+        console.log("Followers data:", data)
+        setFollowers(data)
       } catch (error) {
         console.error("Error fetching followers:", error)
       }
@@ -114,15 +118,18 @@ export default function CreatorProfilePage() {
 
     const fetchFollowingData = async () => {
       try {
-        const response = await fetch(`/api/follows?userId=${creatorId}&type=following`, {
-          cache: "no-store",
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setFollowing(data)
-        } else {
-          console.error("Failed to fetch following:", await response.text())
+        console.log("Fetching following for creator ID:", creatorId)
+        const response = await fetch(`/api/follows?userId=${creatorId}&type=following`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Failed to fetch following:", errorText)
+          return
         }
+
+        const data = await response.json()
+        console.log("Following data:", data)
+        setFollowing(data)
       } catch (error) {
         console.error("Error fetching following:", error)
       }
@@ -130,17 +137,30 @@ export default function CreatorProfilePage() {
 
     const fetchFollowCountsData = async () => {
       try {
-        const counts = await fetchFollowCounts(creatorId)
-        setFollowCounts(counts)
+        console.log("Fetching follow counts for creator ID:", creatorId)
+        const response = await fetch(`/api/follows?userId=${creatorId}&type=counts`)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Failed to fetch follow counts:", errorText)
+          return
+        }
+
+        const data = await response.json()
+        console.log("Follow counts data:", data)
+        setFollowCounts(data)
       } catch (error) {
         console.error("Error fetching follow counts:", error)
+        setFollowCounts({ followers: 0, following: 0 })
       }
     }
 
     const checkIfFollowing = async () => {
       if (user?.id && creatorId) {
         try {
-          const following = await isFollowing(user.id, creatorId)
+          console.log("Checking if user", user.id, "is following creator", creatorId)
+          const following = await api.isFollowing(user.id, Number.parseInt(creatorId))
+          console.log("Is following:", following)
           setIsFollowingCreator(following)
         } catch (error) {
           console.error("Error checking if following:", error)
@@ -156,12 +176,18 @@ export default function CreatorProfilePage() {
         fetchFollowersData(),
         fetchFollowingData(),
         fetchFollowCountsData(),
-        checkIfFollowing(),
       ])
+
+      if (user?.id) {
+        await checkIfFollowing()
+      }
+
       setLoading(false)
     }
 
-    loadData()
+    if (creatorId) {
+      loadData()
+    }
   }, [creatorId, user?.id])
 
   const handleFollow = async () => {
@@ -172,16 +198,19 @@ export default function CreatorProfilePage() {
 
     try {
       if (isFollowingCreator) {
-        await unfollowUser(user.id, creatorId)
+        await api.unfollowUser(user.id, Number.parseInt(creatorId))
         setIsFollowingCreator(false)
         setFollowCounts((prev) => ({ ...prev, followers: Math.max(0, prev.followers - 1) }))
+        toast.success("Unfollowed successfully")
       } else {
-        await followUser(user.id, creatorId)
+        await api.followUser(user.id, Number.parseInt(creatorId))
         setIsFollowingCreator(true)
         setFollowCounts((prev) => ({ ...prev, followers: prev.followers + 1 }))
+        toast.success("Following successfully")
       }
     } catch (error) {
       console.error("Error toggling follow:", error)
+      toast.error("Failed to update follow status")
     }
   }
 
@@ -207,10 +236,10 @@ export default function CreatorProfilePage() {
       }
 
       await addComment({
-        artwork_id: video.id,
-        user_id: user.id,
-        username: user.name || `User-${user.id.substring(0, 4)}`,
-        profile_image: user.image || undefined,
+        artwork_id: video.id.toString(),
+        user_id: user.id.toString(),
+        username: user.name || `User-${user.id.toString().substring(0, 4)}`,
+        profile_image: user.avatar_url || undefined,
         text: newComment,
       })
 
@@ -264,7 +293,7 @@ export default function CreatorProfilePage() {
             <Link href="/create" className="hover:text-pink-400 transition-colors">
               Create
             </Link>
-            {!address && (
+            {!user && (
               <Button
                 onClick={connectWallet}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
@@ -281,7 +310,7 @@ export default function CreatorProfilePage() {
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
           <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-purple-500">
             <img
-              src={creator.profile_image || `/placeholder.svg?height=400&width=600&seed=${creator.wallet_address}`}
+              src={creator.avatar_url || `/placeholder.svg?height=400&width=600&seed=${creator.wallet_address}`}
               alt={creator.username || "Creator"}
               className="w-full h-full object-cover"
             />
@@ -289,9 +318,9 @@ export default function CreatorProfilePage() {
           <div className="flex-1">
             <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
               <h1 className="text-3xl font-bold">
-                {creator.username || `Creator ${creator.wallet_address?.substring(0, 6)}`}
+                {creator.username || creator.name || `Creator ${creator.wallet_address?.substring(0, 6)}`}
               </h1>
-              {user?.id !== creatorId && (
+              {user?.id !== Number.parseInt(creatorId) && (
                 <Button
                   onClick={handleFollow}
                   variant={isFollowingCreator ? "outline" : "default"}
@@ -336,12 +365,12 @@ export default function CreatorProfilePage() {
           <TabsContent value="artworks">
             {artworks.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {artworks.map((artwork, index) => (
+                {artworks.map((artwork) => (
                   <motion.div key={artwork.id} className="bg-gray-900 rounded-lg overflow-hidden">
                     <Link href={`/video/${artwork.id}`}>
                       <div className="aspect-w-16 aspect-h-9 relative">
                         <img
-                          src={artwork.image || "/placeholder.svg?height=400&width=600"}
+                          src={artwork.thumbnail_url || artwork.media_url || "/placeholder.svg?height=400&width=600"}
                           alt={artwork.title}
                           className="w-full h-full object-cover"
                         />
@@ -350,13 +379,15 @@ export default function CreatorProfilePage() {
                     <div className="p-4">
                       <h3 className="font-semibold mb-1">{artwork.title}</h3>
                       <p className="text-sm text-gray-400">
-                        Creator: {artwork.creator_id.slice(0, 6)}...{artwork.creator_id.slice(-4)}
+                        Creator: {creator.username || creator.name || `Creator ${creator.id}`}
                       </p>
-                      <p className="text-sm text-gray-400 mt-2">Price: {artwork.price} MATIC</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        {artwork.token_id ? `Token ID: ${artwork.token_id}` : "Not tokenized yet"}
+                      </p>
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center">
                           <Heart className="mr-2" size={16} />
-                          <span>{artwork.likes}</span>
+                          <span>{artwork.likes || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -375,15 +406,15 @@ export default function CreatorProfilePage() {
           <TabsContent value="followers">
             {followers.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {followers.map((follower, index) => (
+                {followers.map((follower) => (
                   <motion.div key={follower.id} className="bg-gray-900 rounded-lg overflow-hidden">
                     <Link href={`/creator/${follower.id}`}>
                       <div className="p-4 flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
                           <AvatarImage
                             src={
-                              follower.profile_image ||
-                              `/placeholder.svg?height=40&width=40&seed=${follower.wallet_address}`
+                              follower.avatar_url ||
+                              `/placeholder.svg?height=40&width=40&seed=${follower.wallet_address || "/placeholder.svg"}`
                             }
                           />
                           <AvatarFallback>
@@ -391,10 +422,15 @@ export default function CreatorProfilePage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-semibold">{follower.username}</h3>
+                          <h3 className="font-semibold">
+                            {follower.username || follower.name || `User ${follower.id}`}
+                          </h3>
                           <p className="text-sm text-gray-400">
-                            {follower.wallet_address.substring(0, 6)}...
-                            {follower.wallet_address.substring(follower.wallet_address.length - 4)}
+                            {follower.wallet_address
+                              ? `${follower.wallet_address.substring(0, 6)}...${follower.wallet_address.substring(
+                                  follower.wallet_address.length - 4,
+                                )}`
+                              : "No wallet connected"}
                           </p>
                         </div>
                       </div>
@@ -414,15 +450,15 @@ export default function CreatorProfilePage() {
           <TabsContent value="following">
             {following.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {following.map((followedUser, index) => (
+                {following.map((followedUser) => (
                   <motion.div key={followedUser.id} className="bg-gray-900 rounded-lg overflow-hidden">
                     <Link href={`/creator/${followedUser.id}`}>
                       <div className="p-4 flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
                           <AvatarImage
                             src={
-                              followedUser.profile_image ||
-                              `/placeholder.svg?height=40&width=40&seed=${followedUser.wallet_address}`
+                              followedUser.avatar_url ||
+                              `/placeholder.svg?height=40&width=40&seed=${followedUser.wallet_address || "/placeholder.svg"}`
                             }
                           />
                           <AvatarFallback>
@@ -430,10 +466,15 @@ export default function CreatorProfilePage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-semibold">{followedUser.username}</h3>
+                          <h3 className="font-semibold">
+                            {followedUser.username || followedUser.name || `User ${followedUser.id}`}
+                          </h3>
                           <p className="text-sm text-gray-400">
-                            {followedUser.wallet_address.substring(0, 6)}...
-                            {followedUser.wallet_address.substring(followedUser.wallet_address.length - 4)}
+                            {followedUser.wallet_address
+                              ? `${followedUser.wallet_address.substring(0, 6)}...${followedUser.wallet_address.substring(
+                                  followedUser.wallet_address.length - 4,
+                                )}`
+                              : "No wallet connected"}
                           </p>
                         </div>
                       </div>
