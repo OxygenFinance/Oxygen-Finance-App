@@ -1,129 +1,140 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import * as api from "@/lib/api-client"
+import { useState, useEffect } from "react"
 
-export interface Comment {
+interface StorageItem {
+  id: string
+  [key: string]: any
+}
+
+export function useLocalStorage<T extends StorageItem>(key: string, initialValue: T[] = []) {
+  // State to store our value
+  const [storedValue, setStoredValue] = useState<T[]>(initialValue)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    try {
+      // Get from local storage by key
+      const item = window.localStorage.getItem(key)
+      // Parse stored json or if none return initialValue
+      const value = item ? JSON.parse(item) : initialValue
+      setStoredValue(value)
+    } catch (error) {
+      // If error also return initialValue
+      console.error("Error reading from localStorage:", error)
+      setStoredValue(initialValue)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [key, initialValue])
+
+  // Return a wrapped version of useState's setter function that
+  // persists the new value to localStorage.
+  const setValue = (value: T[] | ((val: T[]) => T[])) => {
+    try {
+      // Allow value to be a function so we have same API as useState
+      const valueToStore = value instanceof Function ? value(storedValue) : value
+      // Save state
+      setStoredValue(valueToStore)
+      // Save to local storage
+      window.localStorage.setItem(key, JSON.stringify(valueToStore))
+    } catch (error) {
+      // A more advanced implementation would handle the error case
+      console.error("Error writing to localStorage:", error)
+    }
+  }
+
+  const addItem = (item: T) => {
+    setValue((prevItems) => {
+      // Check if item with same ID already exists
+      const existingItemIndex = prevItems.findIndex((i) => i.id === item.id)
+      if (existingItemIndex >= 0) {
+        // Replace existing item
+        const newItems = [...prevItems]
+        newItems[existingItemIndex] = item
+        return newItems
+      } else {
+        // Add new item
+        return [...prevItems, item]
+      }
+    })
+  }
+
+  const updateItem = (id: string, updates: Partial<T>) => {
+    setValue((prevItems) => {
+      const itemIndex = prevItems.findIndex((item) => item.id === id)
+      if (itemIndex === -1) return prevItems
+
+      const newItems = [...prevItems]
+      newItems[itemIndex] = { ...newItems[itemIndex], ...updates }
+      return newItems
+    })
+  }
+
+  const removeItem = (id: string) => {
+    setValue((prevItems) => prevItems.filter((item) => item.id !== id))
+  }
+
+  const clearItems = () => {
+    setValue([])
+  }
+
+  return {
+    items: storedValue,
+    setItems: setValue,
+    addItem,
+    updateItem,
+    removeItem,
+    clearItems,
+    isLoading,
+  }
+}
+
+interface Comment {
   id: string
   artwork_id: string
   user_id: string
   username: string
   profile_image?: string
   text: string
-  timestamp: Date | string
+  timestamp: string
 }
 
 export function useComments(artworkId: string) {
-  const [comments, setComments] = useState<Comment[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const storageKey = `comments_${artworkId}`
+  const {
+    items: comments,
+    setItems: setComments,
+    addItem: addCommentToStorage,
+    updateItem: updateCommentInStorage,
+    removeItem: removeCommentFromStorage,
+    isLoading,
+  } = useLocalStorage<Comment>(storageKey, [])
 
-  useEffect(() => {
-    if (!artworkId) return
-
-    const fetchComments = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const commentsData = await api.fetchCommentsByArtwork(artworkId)
-        setComments(commentsData)
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to fetch comments"))
-      } finally {
-        setLoading(false)
-      }
+  const addComment = async (commentData: Omit<Comment, "id" | "timestamp">) => {
+    const newComment: Comment = {
+      ...commentData,
+      id: `comment_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: new Date().toISOString(),
     }
 
-    fetchComments()
-  }, [artworkId])
-
-  const addComment = useCallback(
-    async (commentData: Partial<Comment>) => {
-      if (!artworkId) return null
-
-      setLoading(true)
-      setError(null)
-      try {
-        const newComment = await api.createComment({
-          ...commentData,
-          artwork_id: artworkId,
-        })
-        if (newComment) {
-          setComments((prev) => [newComment, ...prev])
-        }
-        return newComment
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to add comment"))
-        return null
-      } finally {
-        setLoading(false)
-      }
-    },
-    [artworkId],
-  )
-
-  const updateComment = useCallback(async (commentId: string, text: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const updatedComment = await api.updateComment(commentId, text)
-      if (updatedComment) {
-        setComments((prev) => prev.map((comment) => (comment.id === commentId ? updatedComment : comment)))
-      }
-      return updatedComment
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to update comment"))
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const deleteComment = useCallback(async (commentId: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const success = await api.deleteComment(commentId)
-      if (success) {
-        setComments((prev) => prev.filter((comment) => comment.id !== commentId))
-      }
-      return success
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to delete comment"))
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  return { comments, loading, error, addComment, updateComment, deleteComment }
-}
-
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === "undefined") {
-      return initialValue
-    }
-    try {
-      const item = window.localStorage.getItem(key)
-      return item ? JSON.parse(item) : initialValue
-    } catch (error) {
-      console.error(error)
-      return initialValue
-    }
-  })
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value
-      setStoredValue(valueToStore)
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore))
-      }
-    } catch (error) {
-      console.error(error)
-    }
+    addCommentToStorage(newComment)
+    return newComment
   }
 
-  return [storedValue, setValue] as const
+  const updateComment = async (id: string, text: string) => {
+    updateCommentInStorage(id, { text })
+  }
+
+  const deleteComment = async (id: string) => {
+    removeCommentFromStorage(id)
+  }
+
+  return {
+    comments,
+    addComment,
+    updateComment,
+    deleteComment,
+    isLoading,
+  }
 }

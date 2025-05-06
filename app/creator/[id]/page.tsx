@@ -414,7 +414,7 @@ export default function CreatorProfilePage() {
                           <AvatarImage
                             src={
                               follower.avatar_url ||
-                              `/placeholder.svg?height=40&width=40&seed=${follower.wallet_address || "/placeholder.svg"}`
+                              `/placeholder.svg?height=40&width=40&seed=${follower.wallet_address || "placeholder"}`
                             }
                           />
                           <AvatarFallback>
@@ -458,7 +458,7 @@ export default function CreatorProfilePage() {
                           <AvatarImage
                             src={
                               followedUser.avatar_url ||
-                              `/placeholder.svg?height=40&width=40&seed=${followedUser.wallet_address || "/placeholder.svg"}`
+                              `/placeholder.svg?height=40&width=40&seed=${followedUser.wallet_address || "placeholder"}`
                             }
                           />
                           <AvatarFallback>

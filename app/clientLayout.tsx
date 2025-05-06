@@ -1,52 +1,40 @@
 "use client"
 
 import type React from "react"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import { Header } from "@/components/Header"
-// Make sure the import path for Footer is correct
-import { Footer } from "@/components/Footer"
-import { WalletProvider } from "@/contexts/WalletContext"
-import { InbuiltWalletProvider } from "@/contexts/InbuiltWalletContext"
-import { AuthProvider } from "@/contexts/AuthContext"
-import { FollowProvider } from "@/contexts/FollowContext"
-import { SessionProvider } from "next-auth/react"
-import { useEffect } from "react"
 
-const inter = Inter({ subsets: ["latin"] })
+import { useState, useEffect } from "react"
+import { WalletConnectOverlay } from "@/components/WalletConnectOverlay"
+import { useInbuiltWallet } from "@/contexts/InbuiltWalletContext"
 
-export default function ClientLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const { address } = useInbuiltWallet()
+  const [showWalletOverlay, setShowWalletOverlay] = useState(false)
+
   useEffect(() => {
-    console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL)
-  }, [])
+    // Check if user has visited before
+    const hasVisited = localStorage.getItem("hasVisitedBefore")
+
+    if (!hasVisited && !address) {
+      // Show wallet overlay after a short delay for new users
+      const timer = setTimeout(() => {
+        setShowWalletOverlay(true)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+
+    // Mark as visited
+    localStorage.setItem("hasVisitedBefore", "true")
+  }, [address])
+
+  const closeWalletOverlay = () => {
+    setShowWalletOverlay(false)
+  }
 
   return (
-    <html lang="en">
-      <head>
-        <link rel="icon" href="/logo.png" />
-      </head>
-      <body className={inter.className}>
-        <SessionProvider>
-          <InbuiltWalletProvider>
-            <WalletProvider>
-              <AuthProvider>
-                <FollowProvider>
-                  <Header />
-                  <main className="min-h-screen">{children}</main>
-                  <Footer />
-                  <ToastContainer position="bottom-right" />
-                </FollowProvider>
-              </AuthProvider>
-            </WalletProvider>
-          </InbuiltWalletProvider>
-        </SessionProvider>
-      </body>
-    </html>
+    <>
+      {children}
+      {showWalletOverlay && <WalletConnectOverlay onClose={closeWalletOverlay} />}
+    </>
   )
 }

@@ -1,186 +1,410 @@
-import * as db from "./db"
+import { sql } from "@/lib/db"
+import { signIn } from "next-auth/react"
 
-// Re-export types from db.ts
-export type User = db.User
-export type Artwork = db.Artwork
-export type Comment = db.Comment
-export type Like = db.Like
-export type Follow = db.Follow
-export type Wallet = db.Wallet
+// API namespace for all client-side API functions
+export const api = {
+  // User functions
+  getUserById: async (id: number): Promise<any | null> => {
+    try {
+      const result = await sql`
+        SELECT * FROM users 
+        WHERE id = ${id}
+      `
+      return result[0] || null
+    } catch (error) {
+      console.error("Error getting user by ID:", error)
+      return null
+    }
+  },
 
-// User functions
-export async function getUserById(id: number): Promise<User | null> {
-  return await db.getUserById(id)
+  getUserByWalletAddress: async (walletAddress: string): Promise<any | null> => {
+    try {
+      const result = await sql`
+        SELECT * FROM users 
+        WHERE wallet_address = ${walletAddress}
+      `
+      return result[0] || null
+    } catch (error) {
+      console.error("Error getting user by wallet address:", error)
+      return null
+    }
+  },
+
+  createUser: async (userData: any): Promise<any | null> => {
+    try {
+      const result = await sql`
+        INSERT INTO users (
+          email, name, username, bio, avatar_url, twitter_id, wallet_address
+        ) VALUES (
+          ${userData.email || null}, 
+          ${userData.name || null}, 
+          ${userData.username || null}, 
+          ${userData.bio || null},
+          ${userData.avatar_url || null},
+          ${userData.twitter_id || null},
+          ${userData.wallet_address || null}
+        )
+        RETURNING *
+      `
+      return result[0]
+    } catch (error) {
+      console.error("Error creating user:", error)
+      return null
+    }
+  },
+
+  updateUser: async (id: number, userData: any): Promise<any | null> => {
+    try {
+      const result = await sql`
+        UPDATE users
+        SET 
+          email = COALESCE(${userData.email}, email),
+          name = COALESCE(${userData.name}, name),
+          username = COALESCE(${userData.username}, username),
+          bio = COALESCE(${userData.bio}, bio),
+          avatar_url = COALESCE(${userData.avatar_url}, avatar_url),
+          twitter_id = COALESCE(${userData.twitter_id}, twitter_id),
+          wallet_address = COALESCE(${userData.wallet_address}, wallet_address)
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return result[0]
+    } catch (error) {
+      console.error("Error updating user:", error)
+      return null
+    }
+  },
+
+  // Artwork functions
+  getArtworkById: async (id: number): Promise<any | null> => {
+    try {
+      const result = await sql`
+        SELECT * FROM artworks 
+        WHERE id = ${id}
+      `
+      return result[0] || null
+    } catch (error) {
+      console.error("Error getting artwork by ID:", error)
+      return null
+    }
+  },
+
+  getArtworksByCreator: async (creatorId: number): Promise<any[]> => {
+    try {
+      return await sql`
+        SELECT * FROM artworks 
+        WHERE creator_id = ${creatorId}
+        ORDER BY created_at DESC
+      `
+    } catch (error) {
+      console.error("Error getting artworks by creator:", error)
+      return []
+    }
+  },
+
+  getAllArtworks: async (limit = 50, offset = 0): Promise<any[]> => {
+    try {
+      return await sql`
+        SELECT * FROM artworks 
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    } catch (error) {
+      console.error("Error getting all artworks:", error)
+      return []
+    }
+  },
+
+  createArtwork: async (artworkData: any): Promise<any | null> => {
+    try {
+      if (!artworkData.title || !artworkData.media_url || !artworkData.creator_id) {
+        throw new Error("Missing required fields for artwork creation")
+      }
+
+      const result = await sql`
+        INSERT INTO artworks (
+          title, description, media_url, thumbnail_url, creator_id, token_id, contract_address
+        ) VALUES (
+          ${artworkData.title}, 
+          ${artworkData.description || null}, 
+          ${artworkData.media_url}, 
+          ${artworkData.thumbnail_url || null}, 
+          ${artworkData.creator_id}, 
+          ${artworkData.token_id || null},
+          ${artworkData.contract_address || null}
+        )
+        RETURNING *
+      `
+      return result[0]
+    } catch (error) {
+      console.error("Error creating artwork:", error)
+      return null
+    }
+  },
+
+  // Comment functions
+  getCommentsByArtwork: async (artworkId: number): Promise<any[]> => {
+    try {
+      return await sql`
+        SELECT c.*, u.name, u.username, u.avatar_url
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.artwork_id = ${artworkId}
+        ORDER BY c.created_at DESC
+      `
+    } catch (error) {
+      console.error("Error getting comments by artwork:", error)
+      return []
+    }
+  },
+
+  createComment: async (commentData: {
+    artwork_id: number
+    user_id: number
+    content: string
+  }): Promise<any | null> => {
+    try {
+      const result = await sql`
+        INSERT INTO comments (
+          artwork_id, user_id, content
+        ) VALUES (
+          ${commentData.artwork_id},
+          ${commentData.user_id},
+          ${commentData.content}
+        )
+        RETURNING *
+      `
+      return result[0]
+    } catch (error) {
+      console.error("Error creating comment:", error)
+      return null
+    }
+  },
+
+  updateComment: async (id: number, content: string): Promise<any | null> => {
+    try {
+      const result = await sql`
+        UPDATE comments
+        SET content = ${content}
+        WHERE id = ${id}
+        RETURNING *
+      `
+      return result[0]
+    } catch (error) {
+      console.error("Error updating comment:", error)
+      return null
+    }
+  },
+
+  deleteComment: async (id: number): Promise<boolean> => {
+    try {
+      const result = await sql`
+        DELETE FROM comments
+        WHERE id = ${id}
+      `
+      return result.count > 0
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+      return false
+    }
+  },
+
+  // Follow functions
+  isFollowing: async (followerId: number, followingId: number): Promise<boolean> => {
+    try {
+      const result = await sql`
+        SELECT * FROM follows
+        WHERE follower_id = ${followerId} AND following_id = ${followingId}
+      `
+      return result.length > 0
+    } catch (error) {
+      console.error("Error checking if following:", error)
+      return false
+    }
+  },
+
+  followUser: async (followerId: number, followingId: number): Promise<boolean> => {
+    try {
+      await sql`
+        INSERT INTO follows (follower_id, following_id)
+        VALUES (${followerId}, ${followingId})
+        ON CONFLICT (follower_id, following_id) DO NOTHING
+      `
+      return true
+    } catch (error) {
+      console.error("Error following user:", error)
+      return false
+    }
+  },
+
+  unfollowUser: async (followerId: number, followingId: number): Promise<boolean> => {
+    try {
+      await sql`
+        DELETE FROM follows
+        WHERE follower_id = ${followerId} AND following_id = ${followingId}
+      `
+      return true
+    } catch (error) {
+      console.error("Error unfollowing user:", error)
+      return false
+    }
+  },
+
+  getFollowers: async (userId: number): Promise<any[]> => {
+    try {
+      return await sql`
+        SELECT u.* FROM follows f
+        JOIN users u ON f.follower_id = u.id
+        WHERE f.following_id = ${userId}
+        ORDER BY f.created_at DESC
+      `
+    } catch (error) {
+      console.error("Error getting followers:", error)
+      return []
+    }
+  },
+
+  getFollowing: async (userId: number): Promise<any[]> => {
+    try {
+      return await sql`
+        SELECT u.* FROM follows f
+        JOIN users u ON f.following_id = u.id
+        WHERE f.follower_id = ${userId}
+        ORDER BY f.created_at DESC
+      `
+    } catch (error) {
+      console.error("Error getting following:", error)
+      return []
+    }
+  },
+
+  getFollowCounts: async (userId: number): Promise<{ followers: number; following: number }> => {
+    try {
+      const followers = await sql`
+        SELECT COUNT(*) as count FROM follows
+        WHERE following_id = ${userId}
+      `
+
+      const following = await sql`
+        SELECT COUNT(*) as count FROM follows
+        WHERE follower_id = ${userId}
+      `
+
+      return {
+        followers: Number.parseInt(followers[0].count),
+        following: Number.parseInt(following[0].count),
+      }
+    } catch (error) {
+      console.error("Error getting follow counts:", error)
+      return { followers: 0, following: 0 }
+    }
+  },
+
+  // Like functions
+  hasUserLikedArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
+    try {
+      const result = await sql`
+        SELECT * FROM likes
+        WHERE user_id = ${userId} AND artwork_id = ${artworkId}
+      `
+      return result.length > 0
+    } catch (error) {
+      console.error("Error checking if user liked artwork:", error)
+      return false
+    }
+  },
+
+  getLikesByArtwork: async (artworkId: number): Promise<number> => {
+    try {
+      const result = await sql`
+        SELECT COUNT(*) as count FROM likes
+        WHERE artwork_id = ${artworkId}
+      `
+      return Number.parseInt(result[0].count)
+    } catch (error) {
+      console.error("Error getting likes by artwork:", error)
+      return 0
+    }
+  },
+
+  likeArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
+    try {
+      await sql`
+        INSERT INTO likes (user_id, artwork_id)
+        VALUES (${userId}, ${artworkId})
+        ON CONFLICT (user_id, artwork_id) DO NOTHING
+      `
+      return true
+    } catch (error) {
+      console.error("Error liking artwork:", error)
+      return false
+    }
+  },
+
+  unlikeArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
+    try {
+      await sql`
+        DELETE FROM likes
+        WHERE user_id = ${userId} AND artwork_id = ${artworkId}
+      `
+      return true
+    } catch (error) {
+      console.error("Error unliking artwork:", error)
+      return false
+    }
+  },
 }
 
-export async function getUserByEmail(email: string): Promise<User | null> {
-  return await db.getUserByEmail(email)
-}
-
-export async function getUserByWalletAddress(walletAddress: string): Promise<User | null> {
-  return await db.getUserByWalletAddress(walletAddress)
-}
-
-export async function getUserByTwitterId(twitterId: string): Promise<User | null> {
-  return await db.getUserByTwitterId(twitterId)
-}
-
-export async function createUser(userData: Partial<User>): Promise<User | null> {
-  return await db.createUser(userData)
-}
-
-export async function updateUser(id: number, userData: Partial<User>): Promise<User | null> {
-  return await db.updateUser(id, userData)
-}
-
-// Artwork functions
-export async function getArtworkById(id: number): Promise<Artwork | null> {
-  return await db.getArtworkById(id)
-}
-
-export async function getArtworksByCreator(creatorId: number): Promise<Artwork[]> {
-  return await db.getArtworksByCreator(creatorId)
-}
-
-export async function getAllArtworks(limit?: number, offset?: number): Promise<Artwork[]> {
-  return await db.getAllArtworks(limit, offset)
-}
-
-export async function createArtwork(artworkData: Partial<Artwork>): Promise<Artwork | null> {
-  return await db.createArtwork(artworkData)
-}
-
-// Comment functions
-export async function getCommentsByArtwork(artworkId: number): Promise<Comment[]> {
-  return await db.getCommentsByArtwork(artworkId)
-}
-
-export async function createComment(commentData: {
-  artwork_id: number
-  user_id: number
-  content: string
-}): Promise<Comment | null> {
-  return await db.createComment(commentData)
-}
-
-export async function updateComment(id: number, content: string): Promise<Comment | null> {
-  return await db.updateComment(id, content)
-}
-
-export async function deleteComment(id: number): Promise<boolean> {
-  return await db.deleteComment(id)
-}
-
-// Like functions
-export async function hasUserLikedArtwork(userId: number, artworkId: number): Promise<boolean> {
-  return await db.hasUserLikedArtwork(userId, artworkId)
-}
-
-export async function getLikesByArtwork(artworkId: number): Promise<number> {
-  return await db.getLikesByArtwork(artworkId)
-}
-
-export async function likeArtwork(userId: number, artworkId: number): Promise<boolean> {
-  return await db.likeArtwork(userId, artworkId)
-}
-
-export async function unlikeArtwork(userId: number, artworkId: number): Promise<boolean> {
-  return await db.unlikeArtwork(userId, artworkId)
-}
-
-// Follow functions
-export const isFollowing = async (userId: number | null, followingId: number): Promise<boolean> => {
-  if (!userId) return false
-
+export async function getUserByTwitter(twitter: string): Promise<User | null> {
   try {
-    const result = await db.sql`
-      SELECT EXISTS(
-        SELECT 1 FROM follows 
-        WHERE follower_id = ${userId} AND following_id = ${followingId}
-      ) as is_following
-    `
-    return result[0].is_following
+    const response = await fetch(`/api/users/twitter/${twitter}`)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user by Twitter: ${response.statusText}`)
+    }
+    return await response.json()
   } catch (error) {
-    console.error("Error checking if following:", error)
-    return false
+    console.error("Error fetching user by Twitter:", error)
+    return null
   }
 }
 
-export async function followUser(followerId: number, followingId: number): Promise<boolean> {
-  return await db.followUser(followerId, followingId)
+export async function connectTwitter(): Promise<void> {
+  try {
+    await signIn("twitter", { callbackUrl: "/profile" })
+  } catch (error) {
+    console.error("Error connecting Twitter:", error)
+    throw error
+  }
 }
 
-export async function unfollowUser(followerId: number, followingId: number): Promise<boolean> {
-  return await db.unfollowUser(followerId, followingId)
+export type User = {
+  id: number
+  email?: string
+  name?: string
+  username?: string
+  bio?: string
+  avatar_url?: string
+  twitter_id?: string
+  wallet_address?: string
+  created_at: Date
 }
 
-export async function getFollowers(userId: number): Promise<User[]> {
-  return await db.getFollowers(userId)
-}
-
-export async function getFollowing(userId: number): Promise<User[]> {
-  return await db.getFollowing(userId)
-}
-
-export async function getFollowCounts(userId: number): Promise<{ followers: number; following: number }> {
-  return await db.getFollowCounts(userId)
-}
-
-// Wallet functions
-export async function createWallet(walletData: {
+export type Comment = {
+  id: number
+  artwork_id: number
   user_id: number
-  address: string
-  encrypted_private_key?: string
-}): Promise<Wallet | null> {
-  return await db.createWallet(walletData)
+  content: string
+  created_at: Date
 }
 
-export async function getWalletByUserId(userId: number): Promise<Wallet | null> {
-  return await db.getWalletByUserId(userId)
-}
-
-export async function getWalletByAddress(address: string): Promise<Wallet | null> {
-  return await db.getWalletByAddress(address)
-}
-
-// Database status functions
-export async function checkDatabaseConnection(): Promise<boolean> {
-  return await db.checkDatabaseConnection()
-}
-
-export async function getDatabaseTables(): Promise<string[]> {
-  return await db.getDatabaseTables()
-}
-
-// Export namespace for compatibility with existing code
-export const api = {
-  getUserById,
-  getUserByEmail,
-  getUserByWalletAddress,
-  getUserByTwitterId,
-  createUser,
-  updateUser,
-  getArtworkById,
-  getArtworksByCreator,
-  getAllArtworks,
-  createArtwork,
-  getCommentsByArtwork,
-  createComment,
-  updateComment,
-  deleteComment,
-  hasUserLikedArtwork,
-  getLikesByArtwork,
-  likeArtwork,
-  unlikeArtwork,
-  isFollowing,
-  followUser,
-  unfollowUser,
-  getFollowers,
-  getFollowing,
-  getFollowCounts,
-  createWallet,
-  getWalletByUserId,
-  getWalletByAddress,
-  checkDatabaseConnection,
-  getDatabaseTables,
+export type Artwork = {
+  id: number
+  title: string
+  description?: string
+  media_url: string
+  thumbnail_url?: string
+  creator_id: number
+  token_id?: string
+  contract_address?: string
+  created_at: Date
 }

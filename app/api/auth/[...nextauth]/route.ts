@@ -173,7 +173,7 @@ export const authOptions = {
       authorization: {
         url: "https://twitter.com/i/oauth2/authorize",
         params: {
-          scope: "tweet.read users.read follows.read",
+          scope: "tweet.read users.read follows.read offline.access",
         },
       },
       profile(profile) {
@@ -192,9 +192,9 @@ export const authOptions = {
       // Add user ID from token to the session
       if (session.user) {
         session.user.id = token.sub || user?.id
-        // You can add additional user data here if needed
-        session.user.walletAddress = token.walletAddress || null
+        // Add Twitter username if available
         session.user.username = token.username || null
+        session.user.walletAddress = token.walletAddress || null
       }
       return session
     },
@@ -202,12 +202,12 @@ export const authOptions = {
       // Persist user data in the token
       if (user) {
         token.id = user.id
-        token.username = user.username
       }
 
       // Add Twitter-specific data
       if (account?.provider === "twitter" && profile) {
-        token.twitterUsername = profile.data?.username
+        token.username = profile.data?.username
+        token.twitterId = profile.data?.id
       }
 
       return token
@@ -216,13 +216,35 @@ export const authOptions = {
       // If it's a Twitter login, store the Twitter username
       if (account?.provider === "twitter" && profile) {
         try {
-          await sql`
-            UPDATE users
-            SET twitter = ${profile.data?.username}
-            WHERE id = ${user.id}
+          // Check if user exists
+          const existingUser = await sql`
+            SELECT * FROM users WHERE email = ${user.email || ""} OR twitter = ${profile.data?.username}
           `
+
+          if (existingUser.length > 0) {
+            // Update existing user with Twitter info
+            await sql`
+              UPDATE users
+              SET twitter = ${profile.data?.username},
+                  twitter_id = ${profile.data?.id},
+                  avatar_url = COALESCE(${profile.data?.profile_image_url}, avatar_url)
+              WHERE id = ${existingUser[0].id}
+            `
+          } else {
+            // Create new user with Twitter info
+            await sql`
+              INSERT INTO users (id, name, twitter, twitter_id, avatar_url)
+              VALUES (
+                ${crypto.randomUUID()}, 
+                ${profile.data?.name}, 
+                ${profile.data?.username},
+                ${profile.data?.id},
+                ${profile.data?.profile_image_url}
+              )
+            `
+          }
         } catch (error) {
-          console.error("Error updating Twitter username:", error)
+          console.error("Error updating Twitter information:", error)
         }
       }
       return true
