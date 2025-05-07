@@ -9,7 +9,8 @@ import type { User } from "@/lib/api-client"
 
 interface AuthContextType {
   user: User | null
-  status: "loading" | "authenticated" | "unauthenticated"
+  status: "loading" | "authenticated" | "unauthenticated" | "error"
+  error: string | null
   signInWithGoogle: () => Promise<void>
   signInWithTwitter: () => Promise<void>
   connectWallet: () => Promise<void>
@@ -33,11 +34,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const { address, createWallet } = useInbuiltWallet()
   const [user, setUser] = useState<User | null>(null)
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading")
+  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated" | "error">("loading")
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const loadUser = async () => {
+      // Reset error state
+      setError(null)
+
       // Check if user is authenticated via NextAuth
       if (sessionStatus === "authenticated" && sessionData?.user) {
         try {
@@ -80,6 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error("Error getting/creating user:", error)
+          setError("Failed to load user data. Please try again later.")
+          setStatus("error")
+
           // Fallback
           setUser({
             id: 0,
@@ -89,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             wallet_address: address || undefined,
             created_at: new Date(),
           })
-          setStatus("authenticated")
         }
       }
       // Check if user has a wallet connected
@@ -121,6 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error("Error getting/creating user:", error)
+          setError("Failed to load wallet user data. Please try again later.")
+          setStatus("error")
+
           // Fallback
           setUser({
             id: 0,
@@ -128,11 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: `User ${address.substring(0, 6)}`,
             created_at: new Date(),
           })
-          setStatus("authenticated")
         }
       }
       // No authentication
-      else if (sessionStatus !== "loading") {
+      else if (sessionStatus === "error") {
+        setUser(null)
+        setStatus("error")
+        setError("Authentication failed. Please try again.")
+      } else if (sessionStatus !== "loading") {
         setUser(null)
         setStatus("unauthenticated")
       }
@@ -143,22 +156,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      setStatus("loading")
       await signIn("google", { callbackUrl: "/profile" })
     } catch (error) {
       console.error("Error signing in with Google:", error)
+      setError("Failed to sign in with Google. Please try again.")
+      setStatus("error")
     }
   }
 
   const signInWithTwitter = async () => {
     try {
+      setStatus("loading")
       await signIn("twitter", { callbackUrl: "/profile" })
     } catch (error) {
       console.error("Error signing in with Twitter:", error)
+      setError("Failed to sign in with Twitter. Please try again.")
+      setStatus("error")
     }
   }
 
   const connectWallet = async () => {
     try {
+      setStatus("loading")
       // If no wallet exists, create one
       if (!address) {
         await createWallet()
@@ -166,6 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!address) {
         console.error("Failed to get wallet address after creation")
+        setError("Failed to create wallet. Please try again.")
+        setStatus("error")
         return
       }
 
@@ -210,6 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("authenticated")
     } catch (error) {
       console.error("Error connecting wallet:", error)
+      setError("Failed to connect wallet. Please try again.")
+      setStatus("error")
     }
   }
 
@@ -226,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push("/")
     } catch (error) {
       console.error("Error logging out:", error)
+      setError("Failed to log out. Please try again.")
     }
   }
 
@@ -234,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         status,
+        error,
         signInWithGoogle,
         signInWithTwitter,
         connectWallet,

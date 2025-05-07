@@ -8,26 +8,26 @@ const customAdapter = {
   async createUser(user) {
     try {
       const result = await sql`
-       INSERT INTO users (id, name, email, image)
-       VALUES (${crypto.randomUUID()}, ${user.name || null}, ${user.email || null}, ${user.image || null})
-       RETURNING id, name, email, image
-     `
+        INSERT INTO users (name, email, image)
+        VALUES (${user.name || null}, ${user.email || null}, ${user.image || null})
+        RETURNING id, name, email, image
+      `
       return result[0]
     } catch (error) {
       console.error("Error creating user:", error)
-      return null
+      throw error // Rethrow to let NextAuth handle it properly
     }
   },
 
   async getUser(id) {
     try {
       const result = await sql`
-       SELECT * FROM users WHERE id = ${id}
-     `
+        SELECT * FROM users WHERE id = ${id}
+      `
       return result[0] || null
     } catch (error) {
       console.error("Error getting user:", error)
-      return null
+      throw error
     }
   },
 
@@ -36,126 +36,137 @@ const customAdapter = {
 
     try {
       const result = await sql`
-       SELECT * FROM users WHERE email = ${email}
-     `
+        SELECT * FROM users WHERE email = ${email}
+      `
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by email:", error)
-      return null
+      throw error
     }
   },
 
   async getUserByAccount({ provider, providerAccountId }) {
     try {
       const result = await sql`
-       SELECT u.* FROM users u
-       JOIN accounts a ON u.id = a.user_id
-       WHERE a.provider = ${provider} AND a.provider_account_id = ${providerAccountId}
-     `
+        SELECT u.* FROM users u
+        JOIN accounts a ON u.id = a.user_id
+        WHERE a.provider = ${provider} AND a.provider_account_id = ${providerAccountId}
+      `
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by account:", error)
-      return null
+      throw error
     }
   },
 
   async updateUser(user) {
     try {
       const result = await sql`
-       UPDATE users
-       SET name = ${user.name || null}, email = ${user.email || null}, image = ${user.image || null}
-       WHERE id = ${user.id}
-       RETURNING *
-     `
+        UPDATE users
+        SET name = ${user.name || null}, email = ${user.email || null}, image = ${user.image || null}
+        WHERE id = ${user.id}
+        RETURNING *
+      `
       return result[0]
     } catch (error) {
       console.error("Error updating user:", error)
-      return null
+      throw error
     }
   },
 
   async linkAccount(account) {
     try {
       await sql`
-       INSERT INTO accounts (
-         user_id, provider, provider_account_id, type, 
-         access_token, token_type, expires_at, refresh_token, id_token
-       )
-       VALUES (
-         ${account.userId}, ${account.provider}, ${account.providerAccountId}, ${account.type},
-         ${account.access_token || null}, ${account.token_type || null}, ${account.expires_at || null}, 
-         ${account.refresh_token || null}, ${account.id_token || null}
-       )
-     `
+        INSERT INTO accounts (
+          user_id, provider, provider_account_id, type, 
+          access_token, token_type, expires_at, refresh_token, id_token
+        )
+        VALUES (
+          ${account.userId}, ${account.provider}, ${account.providerAccountId}, ${account.type},
+          ${account.access_token || null}, ${account.token_type || null}, ${account.expires_at || null}, 
+          ${account.refresh_token || null}, ${account.id_token || null}
+        )
+      `
       return account
     } catch (error) {
       console.error("Error linking account:", error)
-      return null
+      throw error
     }
   },
 
   async createSession(session) {
     try {
       await sql`
-       INSERT INTO sessions (id, user_id, expires, session_token)
-       VALUES (${crypto.randomUUID()}, ${session.userId}, ${new Date(session.expires)}, ${session.sessionToken})
-     `
+        INSERT INTO sessions (user_id, expires, session_token)
+        VALUES (${session.userId}, ${new Date(session.expires)}, ${session.sessionToken})
+      `
       return session
     } catch (error) {
       console.error("Error creating session:", error)
-      return null
+      throw error
     }
   },
 
   async getSessionAndUser(sessionToken) {
     try {
-      const result = await sql`
-       SELECT s.*, u.* FROM sessions s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.session_token = ${sessionToken}
-     `
-      if (result.length === 0) return null
+      const sessions = await sql`
+        SELECT s.*, u.* FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.session_token = ${sessionToken}
+      `
 
-      const { id, user_id, expires, session_token, ...userData } = result[0]
+      if (!sessions || sessions.length === 0) return null
+
+      const session = sessions[0]
+
       return {
-        session: { id, userId: user_id, expires, sessionToken: session_token },
-        user: userData,
+        session: {
+          userId: session.user_id,
+          expires: session.expires,
+          sessionToken: session.session_token,
+        },
+        user: {
+          id: session.id,
+          name: session.name,
+          email: session.email,
+          image: session.image,
+        },
       }
     } catch (error) {
       console.error("Error getting session and user:", error)
-      return null
+      throw error
     }
   },
 
   async updateSession(session) {
     try {
       const result = await sql`
-       UPDATE sessions
-       SET expires = ${new Date(session.expires)}
-       WHERE session_token = ${session.sessionToken}
-       RETURNING *
-     `
+        UPDATE sessions
+        SET expires = ${new Date(session.expires)}
+        WHERE session_token = ${session.sessionToken}
+        RETURNING *
+      `
       return result[0]
     } catch (error) {
       console.error("Error updating session:", error)
-      return null
+      throw error
     }
   },
 
   async deleteSession(sessionToken) {
     try {
       await sql`
-       DELETE FROM sessions
-       WHERE session_token = ${sessionToken}
-     `
+        DELETE FROM sessions
+        WHERE session_token = ${sessionToken}
+      `
     } catch (error) {
       console.error("Error deleting session:", error)
+      throw error
     }
   },
 }
 
 export const authOptions = {
-  adapter: customAdapter,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
