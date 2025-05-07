@@ -299,61 +299,31 @@ export const api = {
       return { followers: 0, following: 0 }
     }
   },
-
-  // Like functions
-  hasUserLikedArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
-    try {
-      const result = await sql`
-        SELECT * FROM likes
-        WHERE user_id = ${userId} AND artwork_id = ${artworkId}
-      `
-      return result.length > 0
-    } catch (error) {
-      console.error("Error checking if user liked artwork:", error)
-      return false
-    }
-  },
-
-  getLikesByArtwork: async (artworkId: number): Promise<number> => {
-    try {
-      const result = await sql`
-        SELECT COUNT(*) as count FROM likes
-        WHERE artwork_id = ${artworkId}
-      `
-      return Number.parseInt(result[0].count)
-    } catch (error) {
-      console.error("Error getting likes by artwork:", error)
-      return 0
-    }
-  },
-
-  likeArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
-    try {
-      await sql`
-        INSERT INTO likes (user_id, artwork_id)
-        VALUES (${userId}, ${artworkId})
-        ON CONFLICT (user_id, artwork_id) DO NOTHING
-      `
-      return true
-    } catch (error) {
-      console.error("Error liking artwork:", error)
-      return false
-    }
-  },
-
-  unlikeArtwork: async (userId: number, artworkId: number): Promise<boolean> => {
-    try {
-      await sql`
-        DELETE FROM likes
-        WHERE user_id = ${userId} AND artwork_id = ${artworkId}
-      `
-      return true
-    } catch (error) {
-      console.error("Error unliking artwork:", error)
-      return false
-    }
-  },
 }
+
+// Export individual functions directly
+export const getUserById = api.getUserById
+export const getUserByWalletAddress = api.getUserByWalletAddress
+export const createUser = api.createUser
+export const updateUser = api.updateUser
+export const getArtworkById = api.getArtworkById
+export const getArtworksByCreator = api.getArtworksByCreator
+export const getAllArtworks = api.getAllArtworks
+export const createArtwork = api.createArtwork
+export const getCommentsByArtwork = api.getCommentsByArtwork
+export const createComment = api.createComment
+export const updateComment = api.updateComment
+export const deleteComment = api.deleteComment
+export const hasUserLikedArtwork = api.hasUserLikedArtwork
+export const getLikesByArtwork = api.getLikesByArtwork
+export const likeArtwork = api.likeArtwork
+export const unlikeArtwork = api.unlikeArtwork
+export const isFollowing = api.isFollowing
+export const followUser = api.followUser
+export const unfollowUser = api.unfollowUser
+export const getFollowers = api.getFollowers
+export const getFollowing = api.getFollowing
+export const getFollowCounts = api.getFollowCounts
 
 export async function getUserByTwitter(twitter: string): Promise<User | null> {
   try {
@@ -407,4 +377,39 @@ export type Artwork = {
   token_id?: string
   contract_address?: string
   created_at: Date
+}
+
+export type Follow = {
+  id: number
+  follower_id: number
+  following_id: number
+  created_at: Date
+}
+
+export type Like = {
+  id: number
+  user_id: number
+  artwork_id: number
+  created_at: Date
+}
+
+export type Wallet = {
+  id: number
+  user_id: number
+  address: string
+  encrypted_private_key?: string
+  created_at: Date
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  try {
+    const result = await sql`
+      SELECT * FROM users 
+      WHERE email = ${email}
+    `
+    return result[0] || null
+  } catch (error) {
+    console.error("Error getting user by email:", error)
+    return null
+  }
 }

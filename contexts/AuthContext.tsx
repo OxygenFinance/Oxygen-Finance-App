@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useRouter } from "next/navigation"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { useInbuiltWallet } from "./InbuiltWalletContext"
-import { getUserByWalletAddress, createUser, updateUser, getUserByEmail } from "@/lib/api-client"
+import { api } from "@/lib/api-client"
 import type { User } from "@/lib/api-client"
 
 interface AuthContextType {
@@ -27,7 +27,10 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data: session, status: sessionStatus } = useSession()
+  const session = useSession()
+  const sessionData = session?.data
+  const sessionStatus = session?.status || "loading"
+
   const { address, createWallet } = useInbuiltWallet()
   const [user, setUser] = useState<User | null>(null)
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading")
@@ -36,21 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadUser = async () => {
       // Check if user is authenticated via NextAuth
-      if (sessionStatus === "authenticated" && session?.user) {
+      if (sessionStatus === "authenticated" && sessionData?.user) {
         try {
           // Try to get user from database by email
           let dbUser = null
-          if (session.user.email) {
-            dbUser = await getUserByEmail(session.user.email)
+          if (sessionData.user.email) {
+            dbUser = await api.getUserByEmail(sessionData.user.email)
           }
 
           // If user doesn't exist, create one
-          if (!dbUser && session.user.email) {
-            dbUser = await createUser({
-              email: session.user.email,
-              name: session.user.name || undefined,
-              avatar_url: session.user.image || undefined,
-              twitter_id: (session.user as any).twitter_id || undefined,
+          if (!dbUser && sessionData.user.email) {
+            dbUser = await api.createUser({
+              email: sessionData.user.email,
+              name: sessionData.user.name || undefined,
+              avatar_url: sessionData.user.image || undefined,
+              twitter_id: (sessionData.user as any).twitter_id || undefined,
               wallet_address: address || undefined,
             })
           }
@@ -58,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (dbUser) {
             // If user has a wallet address but it's not in the database, update it
             if (address && !dbUser.wallet_address) {
-              dbUser = await updateUser(dbUser.id, { wallet_address: address })
+              dbUser = await api.updateUser(dbUser.id, { wallet_address: address })
             }
 
             setUser(dbUser)
@@ -67,9 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Fallback if database operations fail
             setUser({
               id: 0,
-              email: session.user.email || undefined,
-              name: session.user.name || undefined,
-              avatar_url: session.user.image || undefined,
+              email: sessionData.user.email || undefined,
+              name: sessionData.user.name || undefined,
+              avatar_url: sessionData.user.image || undefined,
               wallet_address: address || undefined,
               created_at: new Date(),
             })
@@ -80,9 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Fallback
           setUser({
             id: 0,
-            email: session.user.email || undefined,
-            name: session.user.name || undefined,
-            avatar_url: session.user.image || undefined,
+            email: sessionData.user.email || undefined,
+            name: sessionData.user.name || undefined,
+            avatar_url: sessionData.user.image || undefined,
             wallet_address: address || undefined,
             created_at: new Date(),
           })
@@ -93,11 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else if (address) {
         try {
           // Try to get user from database by wallet address
-          let dbUser = await getUserByWalletAddress(address)
+          let dbUser = await api.getUserByWalletAddress(address)
 
           // If user doesn't exist, create one
           if (!dbUser) {
-            dbUser = await createUser({
+            dbUser = await api.createUser({
               wallet_address: address,
               name: `User ${address.substring(0, 6)}`,
             })
@@ -136,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     loadUser()
-  }, [session, sessionStatus, address])
+  }, [sessionData, sessionStatus, address])
 
   const signInWithGoogle = async () => {
     try {
@@ -171,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to get user from database by wallet address
       let dbUser = null
       try {
-        dbUser = await getUserByWalletAddress(address)
+        dbUser = await api.getUserByWalletAddress(address)
         console.log("Found existing user:", dbUser)
       } catch (error) {
         console.error("Error getting user by wallet address:", error)
@@ -181,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!dbUser) {
         try {
           console.log("Creating new user with wallet address:", address)
-          dbUser = await createUser({
+          dbUser = await api.createUser({
             wallet_address: address,
             name: `User ${address.substring(0, 6)}`,
           })

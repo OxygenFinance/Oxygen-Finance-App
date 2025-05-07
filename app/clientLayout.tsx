@@ -2,39 +2,41 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { WalletConnectOverlay } from "@/components/WalletConnectOverlay"
-import { useInbuiltWallet } from "@/contexts/InbuiltWalletContext"
+import { SessionProvider } from "next-auth/react"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
+import { InbuiltWalletProvider } from "@/contexts/InbuiltWalletContext"
+import { AuthProvider } from "@/contexts/AuthContext"
+import { FollowProvider } from "@/contexts/FollowContext"
+import { ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { address } = useInbuiltWallet()
-  const [showWalletOverlay, setShowWalletOverlay] = useState(false)
-
-  useEffect(() => {
-    // Check if user has visited before
-    const hasVisited = localStorage.getItem("hasVisitedBefore")
-
-    if (!hasVisited && !address) {
-      // Show wallet overlay after a short delay for new users
-      const timer = setTimeout(() => {
-        setShowWalletOverlay(true)
-      }, 3000)
-
-      return () => clearTimeout(timer)
-    }
-
-    // Mark as visited
-    localStorage.setItem("hasVisitedBefore", "true")
-  }, [address])
-
-  const closeWalletOverlay = () => {
-    setShowWalletOverlay(false)
-  }
-
   return (
-    <>
-      {children}
-      {showWalletOverlay && <WalletConnectOverlay onClose={closeWalletOverlay} />}
-    </>
+    <SessionProvider>
+      <InbuiltWalletProvider>
+        <AuthProvider>
+          <FollowProvider>
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
+            <ToastContainer
+              position="bottom-right"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="dark"
+            />
+          </FollowProvider>
+        </AuthProvider>
+      </InbuiltWalletProvider>
+    </SessionProvider>
   )
 }
