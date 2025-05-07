@@ -9,13 +9,13 @@ const customAdapter = {
     try {
       const result = await sql`
        INSERT INTO users (id, name, email, image)
-       VALUES (${crypto.randomUUID()}, ${user.name}, ${user.email}, ${user.image})
+       VALUES (${crypto.randomUUID()}, ${user.name}, ${user.email || null}, ${user.image || null})
        RETURNING id, name, email, image
      `
       return result[0]
     } catch (error) {
       console.error("Error creating user:", error)
-      return null
+      throw new Error(`Failed to create user: ${error.message}`)
     }
   },
 
@@ -27,11 +27,13 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user:", error)
-      return null
+      throw new Error(`Failed to get user: ${error.message}`)
     }
   },
 
   async getUserByEmail(email) {
+    if (!email) return null
+
     try {
       const result = await sql`
        SELECT * FROM users WHERE email = ${email}
@@ -39,7 +41,7 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by email:", error)
-      return null
+      throw new Error(`Failed to get user by email: ${error.message}`)
     }
   },
 
@@ -53,7 +55,7 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by account:", error)
-      return null
+      throw new Error(`Failed to get user by account: ${error.message}`)
     }
   },
 
@@ -61,14 +63,14 @@ const customAdapter = {
     try {
       const result = await sql`
        UPDATE users
-       SET name = ${user.name}, email = ${user.email}, image = ${user.image}
+       SET name = ${user.name}, email = ${user.email || null}, image = ${user.image || null}
        WHERE id = ${user.id}
        RETURNING *
      `
       return result[0]
     } catch (error) {
       console.error("Error updating user:", error)
-      return null
+      throw new Error(`Failed to update user: ${error.message}`)
     }
   },
 
@@ -81,14 +83,14 @@ const customAdapter = {
        )
        VALUES (
          ${account.userId}, ${account.provider}, ${account.providerAccountId}, ${account.type},
-         ${account.access_token}, ${account.token_type}, ${account.expires_at}, 
-         ${account.refresh_token}, ${account.id_token}
+         ${account.access_token || null}, ${account.token_type || null}, ${account.expires_at || null}, 
+         ${account.refresh_token || null}, ${account.id_token || null}
        )
      `
       return account
     } catch (error) {
       console.error("Error linking account:", error)
-      return null
+      throw new Error(`Failed to link account: ${error.message}`)
     }
   },
 
@@ -101,7 +103,7 @@ const customAdapter = {
       return session
     } catch (error) {
       console.error("Error creating session:", error)
-      return null
+      throw new Error(`Failed to create session: ${error.message}`)
     }
   },
 
@@ -121,7 +123,7 @@ const customAdapter = {
       }
     } catch (error) {
       console.error("Error getting session and user:", error)
-      return null
+      throw new Error(`Failed to get session and user: ${error.message}`)
     }
   },
 
@@ -136,7 +138,7 @@ const customAdapter = {
       return result[0]
     } catch (error) {
       console.error("Error updating session:", error)
-      return null
+      throw new Error(`Failed to update session: ${error.message}`)
     }
   },
 
@@ -148,6 +150,7 @@ const customAdapter = {
      `
     } catch (error) {
       console.error("Error deleting session:", error)
+      throw new Error(`Failed to delete session: ${error.message}`)
     }
   },
 }
@@ -188,10 +191,10 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, token, user }) {
+    async session({ session, token }) {
       // Add user ID from token to the session
-      if (session.user) {
-        session.user.id = token.sub || user?.id
+      if (session?.user) {
+        session.user.id = token.sub
         // Add Twitter username if available
         session.user.username = token.username || null
         session.user.walletAddress = token.walletAddress || null
@@ -218,7 +221,7 @@ export const authOptions = {
         try {
           // Check if user exists
           const existingUser = await sql`
-            SELECT * FROM users WHERE email = ${user.email || ""} OR twitter = ${profile.data?.username}
+            SELECT * FROM users WHERE twitter = ${profile.data?.username}
           `
 
           if (existingUser.length > 0) {
@@ -231,20 +234,32 @@ export const authOptions = {
               WHERE id = ${existingUser[0].id}
             `
           } else {
-            // Create new user with Twitter info
-            await sql`
-              INSERT INTO users (id, name, twitter, twitter_id, avatar_url)
-              VALUES (
-                ${crypto.randomUUID()}, 
-                ${profile.data?.name}, 
-                ${profile.data?.username},
-                ${profile.data?.id},
-                ${profile.data?.profile_image_url}
-              )
-            `
+            // Create new user with Twitter info if user doesn't exist
+            if (!user.id) {
+              await sql`
+                INSERT INTO users (id, name, twitter, twitter_id, avatar_url)
+                VALUES (
+                  ${crypto.randomUUID()}, 
+                  ${profile.data?.name}, 
+                  ${profile.data?.username},
+                  ${profile.data?.id},
+                  ${profile.data?.profile_image_url}
+                )
+              `
+            } else {
+              // Update existing user
+              await sql`
+                UPDATE users
+                SET twitter = ${profile.data?.username},
+                    twitter_id = ${profile.data?.id},
+                    avatar_url = COALESCE(${profile.data?.profile_image_url}, avatar_url)
+                WHERE id = ${user.id}
+              `
+            }
           }
         } catch (error) {
           console.error("Error updating Twitter information:", error)
+          // Don't throw here, just log the error and continue
         }
       }
       return true
@@ -255,10 +270,11 @@ export const authOptions = {
     signOut: "/auth/signout",
     error: "/auth/error",
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "your-fallback-secret-do-not-use-in-production",
+  secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
 
+// Add error handling to the NextAuth handler
 const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

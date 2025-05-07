@@ -1,10 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
+  // Remove swcMinify as it's now enabled by default
   images: {
-    domains: ['api.dicebear.com', 'assets.mixkit.co'],
+    domains: ['api.dicebear.com', 'assets.mixkit.co', 'pbs.twimg.com'],
     unoptimized: true,
+  },
+  // Remove experimental.appDir as App Router is now the default
+  experimental: {
+    // Only keep necessary experimental features
+    serverActions: true,
   },
   // Ensure environment variables are properly loaded
   env: {

@@ -25,7 +25,8 @@ export default function CollectionsPage() {
     const fetchCollections = async () => {
       if (typeof window.ethereum !== "undefined") {
         try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum)
+          // Updated ethers provider syntax for v6
+          const provider = new ethers.BrowserProvider(window.ethereum)
           const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, provider)
 
           // For simplicity, we'll fetch the first 20 NFTs
@@ -56,8 +57,9 @@ export default function CollectionsPage() {
   const purchaseNFT = async (tokenId: number, price: ethers.BigNumber) => {
     if (typeof window.ethereum !== "undefined") {
       try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum)
-        const signer = provider.getSigner()
+        // Updated ethers provider syntax for v6
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const signer = await provider.getSigner()
         const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, signer)
 
         const tx = await contract.purchaseNFT(tokenId, { value: price })
@@ -126,7 +128,7 @@ export default function CollectionsPage() {
                   <p className="text-sm text-gray-400">
                     Creator: {nft.creator.slice(0, 6)}...{nft.creator.slice(-4)}
                   </p>
-                  <p className="text-sm text-gray-400 mt-2">Price: {ethers.utils.formatEther(nft.price)} MATIC</p>
+                  <p className="text-sm text-gray-400 mt-2">Price: {ethers.formatEther(nft.price)} MATIC</p>
                   <p className="text-sm text-gray-400">Royalty: {nft.royaltyPercentage.toString()}%</p>
                   <Button
                     onClick={() => purchaseNFT(index, nft.price)}
