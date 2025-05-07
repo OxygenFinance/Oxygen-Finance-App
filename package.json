@@ -72,7 +72,8 @@
     "child_process": "latest",
     "@neondatabase/serverless": "latest",
     "dotenv": "latest",
-    "path": "latest"
+    "path": "latest",
+    "fs": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

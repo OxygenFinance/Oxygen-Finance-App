@@ -1,27 +1,39 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Images configuration
-  images: {
-    domains: ['api.dicebear.com', 'assets.mixkit.co', 'pbs.twimg.com'],
-    unoptimized: true,
-  },
-  // Experimental features
-  experimental: {
-    serverActions: true,
-  },
-  // Environment variables
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
-  },
-  // ESLint configuration
+  reactStrictMode: true,
+  swcMinify: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
   },
-}
+  images: {
+    domains: ['v0.blob.com', 'localhost'],
+    unoptimized: true,
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['@neondatabase/serverless'],
+  },
+  // Ensure we handle API routes correctly
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
+        ],
+      },
+    ];
+  },
+  // Ensure we don't have issues with environment variables
+  env: {
+    NEXT_PUBLIC_POLYGON_RPC_URL: process.env.NEXT_PUBLIC_POLYGON_RPC_URL,
+  },
+  // Optimize output
+  output: 'standalone',
+};
 
-export default nextConfig
+export default nextConfig;
