@@ -6,7 +6,7 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
-    "api/**/*": {
+    "app/api/**/*": {
       "memory": 1024
     }
   },
