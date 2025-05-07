@@ -10,6 +10,25 @@ export const sql = neon(connectionString)
 
 console.log("Database connection initialized with:", connectionString.substring(0, 25) + "...")
 
+// Add a simple function to test the database connection
+export async function testConnection() {
+  try {
+    const result = await sql`SELECT NOW()`
+    return {
+      success: true,
+      message: "Database connection successful",
+      timestamp: result[0].now,
+    }
+  } catch (error) {
+    console.error("Database connection error:", error)
+    return {
+      success: false,
+      message: "Database connection failed",
+      error: error.message,
+    }
+  }
+}
+
 // Types
 export interface Comment {
   id: number

@@ -9,13 +9,13 @@ const customAdapter = {
     try {
       const result = await sql`
        INSERT INTO users (id, name, email, image)
-       VALUES (${crypto.randomUUID()}, ${user.name}, ${user.email || null}, ${user.image || null})
+       VALUES (${crypto.randomUUID()}, ${user.name || null}, ${user.email || null}, ${user.image || null})
        RETURNING id, name, email, image
      `
       return result[0]
     } catch (error) {
       console.error("Error creating user:", error)
-      throw new Error(`Failed to create user: ${error.message}`)
+      return null
     }
   },
 
@@ -27,7 +27,7 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user:", error)
-      throw new Error(`Failed to get user: ${error.message}`)
+      return null
     }
   },
 
@@ -41,7 +41,7 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by email:", error)
-      throw new Error(`Failed to get user by email: ${error.message}`)
+      return null
     }
   },
 
@@ -55,7 +55,7 @@ const customAdapter = {
       return result[0] || null
     } catch (error) {
       console.error("Error getting user by account:", error)
-      throw new Error(`Failed to get user by account: ${error.message}`)
+      return null
     }
   },
 
@@ -63,14 +63,14 @@ const customAdapter = {
     try {
       const result = await sql`
        UPDATE users
-       SET name = ${user.name}, email = ${user.email || null}, image = ${user.image || null}
+       SET name = ${user.name || null}, email = ${user.email || null}, image = ${user.image || null}
        WHERE id = ${user.id}
        RETURNING *
      `
       return result[0]
     } catch (error) {
       console.error("Error updating user:", error)
-      throw new Error(`Failed to update user: ${error.message}`)
+      return null
     }
   },
 
@@ -90,7 +90,7 @@ const customAdapter = {
       return account
     } catch (error) {
       console.error("Error linking account:", error)
-      throw new Error(`Failed to link account: ${error.message}`)
+      return null
     }
   },
 
@@ -103,7 +103,7 @@ const customAdapter = {
       return session
     } catch (error) {
       console.error("Error creating session:", error)
-      throw new Error(`Failed to create session: ${error.message}`)
+      return null
     }
   },
 
@@ -123,7 +123,7 @@ const customAdapter = {
       }
     } catch (error) {
       console.error("Error getting session and user:", error)
-      throw new Error(`Failed to get session and user: ${error.message}`)
+      return null
     }
   },
 
@@ -138,7 +138,7 @@ const customAdapter = {
       return result[0]
     } catch (error) {
       console.error("Error updating session:", error)
-      throw new Error(`Failed to update session: ${error.message}`)
+      return null
     }
   },
 
@@ -150,7 +150,6 @@ const customAdapter = {
      `
     } catch (error) {
       console.error("Error deleting session:", error)
-      throw new Error(`Failed to delete session: ${error.message}`)
     }
   },
 }
@@ -161,120 +160,35 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-        },
-      },
     }),
     TwitterProvider({
       clientId: process.env.TWITTER_CLIENT_ID || "",
       clientSecret: process.env.TWITTER_CLIENT_SECRET || "",
       version: "2.0",
-      authorization: {
-        url: "https://twitter.com/i/oauth2/authorize",
-        params: {
-          scope: "tweet.read users.read follows.read offline.access",
-        },
-      },
-      profile(profile) {
-        return {
-          id: profile.data.id,
-          name: profile.data.name,
-          email: null, // Twitter doesn't provide email by default
-          image: profile.data.profile_image_url,
-          username: profile.data.username,
-        }
-      },
     }),
   ],
   callbacks: {
     async session({ session, token }) {
-      // Add user ID from token to the session
       if (session?.user) {
-        session.user.id = token.sub
-        // Add Twitter username if available
-        session.user.username = token.username || null
-        session.user.walletAddress = token.walletAddress || null
+        session.user.id = token.sub || ""
       }
       return session
     },
-    async jwt({ token, user, account, profile }) {
-      // Persist user data in the token
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
       }
-
-      // Add Twitter-specific data
-      if (account?.provider === "twitter" && profile) {
-        token.username = profile.data?.username
-        token.twitterId = profile.data?.id
-      }
-
       return token
-    },
-    async signIn({ user, account, profile }) {
-      // If it's a Twitter login, store the Twitter username
-      if (account?.provider === "twitter" && profile) {
-        try {
-          // Check if user exists
-          const existingUser = await sql`
-            SELECT * FROM users WHERE twitter = ${profile.data?.username}
-          `
-
-          if (existingUser.length > 0) {
-            // Update existing user with Twitter info
-            await sql`
-              UPDATE users
-              SET twitter = ${profile.data?.username},
-                  twitter_id = ${profile.data?.id},
-                  avatar_url = COALESCE(${profile.data?.profile_image_url}, avatar_url)
-              WHERE id = ${existingUser[0].id}
-            `
-          } else {
-            // Create new user with Twitter info if user doesn't exist
-            if (!user.id) {
-              await sql`
-                INSERT INTO users (id, name, twitter, twitter_id, avatar_url)
-                VALUES (
-                  ${crypto.randomUUID()}, 
-                  ${profile.data?.name}, 
-                  ${profile.data?.username},
-                  ${profile.data?.id},
-                  ${profile.data?.profile_image_url}
-                )
-              `
-            } else {
-              // Update existing user
-              await sql`
-                UPDATE users
-                SET twitter = ${profile.data?.username},
-                    twitter_id = ${profile.data?.id},
-                    avatar_url = COALESCE(${profile.data?.profile_image_url}, avatar_url)
-                WHERE id = ${user.id}
-              `
-            }
-          }
-        } catch (error) {
-          console.error("Error updating Twitter information:", error)
-          // Don't throw here, just log the error and continue
-        }
-      }
-      return true
     },
   },
   pages: {
     signIn: "/auth/signin",
-    signOut: "/auth/signout",
     error: "/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
 
-// Add error handling to the NextAuth handler
 const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

@@ -1,28 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove swcMinify as it's now enabled by default
+  // Images configuration
   images: {
     domains: ['api.dicebear.com', 'assets.mixkit.co', 'pbs.twimg.com'],
     unoptimized: true,
   },
-  // Remove experimental.appDir as App Router is now the default
+  // Experimental features
   experimental: {
-    // Only keep necessary experimental features
     serverActions: true,
   },
-  // Ensure environment variables are properly loaded
+  // Environment variables
   env: {
-    DATABASE_URL: process.env.DATABASE_URL,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
-    TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
   },
+  // ESLint configuration
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
   },
