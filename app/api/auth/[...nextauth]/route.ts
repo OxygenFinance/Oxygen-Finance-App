@@ -2,8 +2,7 @@ import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import TwitterProvider from "next-auth/providers/twitter"
 
-// Create a minimal configuration without the custom adapter for now
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -15,10 +14,12 @@ export const authOptions = {
       version: "2.0",
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET,
-  debug: true, // Enable debug mode to see detailed logs
-}
-
-const handler = NextAuth(authOptions)
+  secret: process.env.NEXTAUTH_SECRET || "default-secret-for-development",
+  debug: process.env.NODE_ENV !== "production",
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error",
+  },
+})
 
 export { handler as GET, handler as POST }
