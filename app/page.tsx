@@ -6,14 +6,14 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { User, ArrowRight, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Home() {
   const router = useRouter()
+  const { user, status, connectWallet, logout } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [entered, setEntered] = useState(false)
   const entranceRef = useRef<HTMLDivElement>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,24 +33,13 @@ export default function Home() {
     }, 500)
   }
 
-  const truncateAddress = (address: string | null) => {
+  const truncateAddress = (address: string | undefined) => {
     if (!address) return "Connect Wallet"
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
   }
 
   const navigateToProfile = () => {
     router.push("/profile")
-  }
-
-  const connectWallet = () => {
-    // Mock wallet connection for demo
-    setIsConnected(true)
-    setWalletAddress("0x1234567890abcdef1234567890abcdef12345678")
-  }
-
-  const logout = () => {
-    setIsConnected(false)
-    setWalletAddress(null)
   }
 
   return (
@@ -79,7 +68,7 @@ export default function Home() {
             <Link href="/create" className="hover:text-pink-400 transition-colors">
               Create
             </Link>
-            {isConnected && walletAddress ? (
+            {status === "authenticated" && user?.walletAddress ? (
               <>
                 <Button
                   onClick={navigateToProfile}
@@ -90,7 +79,7 @@ export default function Home() {
                   Profile
                 </Button>
                 <Button onClick={logout} variant="outline" className="border-gray-500 text-gray-300">
-                  {truncateAddress(walletAddress)}
+                  {truncateAddress(user.walletAddress)}
                 </Button>
               </>
             ) : (
