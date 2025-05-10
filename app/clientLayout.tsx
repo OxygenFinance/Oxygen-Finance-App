@@ -2,32 +2,32 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { SessionProvider } from "next-auth/react"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
-import { usePathname } from "next/navigation"
-import { WalletConnectOverlay } from "@/components/WalletConnectOverlay"
-import { useInbuiltWallet } from "@/contexts/InbuiltWalletContext"
+import { ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const { showWalletConnect, setShowWalletConnect } = useInbuiltWallet()
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  useEffect(() => {
-    setIsLoaded(true)
-  }, [])
-
-  if (!isLoaded) {
-    return null
-  }
-
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-black text-white">{children}</main>
-      <Footer />
-      {showWalletConnect && <WalletConnectOverlay onClose={() => setShowWalletConnect(false)} />}
-    </>
+    <SessionProvider>
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow">{children}</main>
+        <Footer />
+      </div>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
+    </SessionProvider>
   )
 }

@@ -52,7 +52,6 @@
     "embla-carousel-react": "8.5.1",
     "ethers": "latest",
     "framer-motion": "latest",
-    "fs": "latest",
     "input-otp": "1.4.1",
     "js-sha3": "latest",
     "lucide-react": "^0.454.0",

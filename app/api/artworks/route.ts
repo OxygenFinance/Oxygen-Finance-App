@@ -1,30 +1,14 @@
-import { NextResponse } from "next/server"
-import { getAllArtworks, getArtworksByCreator, createArtwork } from "@/lib/api-client"
+import { type NextRequest, NextResponse } from "next/server"
+import { getAllArtworks, createArtwork } from "@/lib/api-client"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const creatorId = searchParams.get("creatorId")
-    const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit")!) : undefined
-    const offset = searchParams.get("offset") ? Number.parseInt(searchParams.get("offset")!) : undefined
+    const searchParams = request.nextUrl.searchParams
+    const limit = Number(searchParams.get("limit") || "50")
+    const offset = Number(searchParams.get("offset") || "0")
 
-    console.log("Fetching artworks with params:", { creatorId, limit, offset })
+    const artworks = await getAllArtworks(limit, offset)
 
-    let artworks
-    if (creatorId) {
-      // Parse the creator ID as a number
-      const creatorIdNum = Number.parseInt(creatorId, 10)
-
-      if (isNaN(creatorIdNum)) {
-        return NextResponse.json({ error: "Invalid creator ID format" }, { status: 400 })
-      }
-
-      artworks = await getArtworksByCreator(creatorIdNum)
-    } else {
-      artworks = await getAllArtworks(limit, offset)
-    }
-
-    console.log(`Found ${artworks.length} artworks`)
     return NextResponse.json(artworks)
   } catch (error) {
     console.error("Error fetching artworks:", error)

@@ -1,34 +1,50 @@
-import { NextResponse } from "next/server"
-import { updateComment, deleteComment } from "@/lib/api-client"
+import { type NextRequest, NextResponse } from "next/server"
+import { getCommentsByArtwork, updateComment, deleteComment } from "@/lib/db"
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const artworkId = Number.parseInt(params.id)
+
+    if (isNaN(artworkId)) {
+      return NextResponse.json({ error: "Invalid artwork ID" }, { status: 400 })
+    }
+
+    const comments = await getCommentsByArtwork(artworkId)
+
+    return NextResponse.json(comments)
+  } catch (error) {
+    console.error("Error fetching comments:", error)
+    return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const commentId = Number.parseInt(params.id)
+    const { content } = await request.json()
 
     if (isNaN(commentId)) {
       return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 })
     }
 
-    const body = await request.json()
-
-    if (!body.content) {
+    if (!content) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
     }
 
-    const updatedComment = await updateComment(commentId, body.content)
+    const comment = await updateComment(commentId, content)
 
-    if (!updatedComment) {
-      return NextResponse.json({ error: "Comment not found or update failed" }, { status: 404 })
+    if (!comment) {
+      return NextResponse.json({ error: "Failed to update comment" }, { status: 500 })
     }
 
-    return NextResponse.json(updatedComment)
+    return NextResponse.json(comment)
   } catch (error) {
     console.error("Error updating comment:", error)
     return NextResponse.json({ error: "Failed to update comment" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const commentId = Number.parseInt(params.id)
 
@@ -36,10 +52,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 })
     }
 
-    const success = await deleteComment(commentId)
+    const result = await deleteComment(commentId)
 
-    if (!success) {
-      return NextResponse.json({ error: "Comment not found or delete failed" }, { status: 404 })
+    if (!result) {
+      return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })

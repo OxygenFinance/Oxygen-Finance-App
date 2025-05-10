@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server"
-import { getArtworkById } from "@/lib/api-client"
+import { type NextRequest, NextResponse } from "next/server"
+import { getArtworkById } from "@/lib/db"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const artworkId = Number.parseInt(params.id)
 

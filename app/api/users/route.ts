@@ -1,43 +1,21 @@
-import { NextResponse } from "next/server"
-import { createUser, getUserByEmail, getUserByWalletAddress } from "@/lib/api-client"
+import { type NextRequest, NextResponse } from "next/server"
+import { createUser } from "@/lib/db"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    console.log("Creating user with data:", body)
+    const userData = await request.json()
 
-    // Check for required fields
-    if (!body.email && !body.wallet_address) {
-      return NextResponse.json({ error: "Email or wallet address is required" }, { status: 400 })
+    if (!userData) {
+      return NextResponse.json({ error: "Invalid user data" }, { status: 400 })
     }
 
-    // Check if user already exists
-    if (body.email) {
-      const existingUser = await getUserByEmail(body.email)
-      if (existingUser) {
-        console.log("User with this email already exists:", existingUser)
-        return NextResponse.json(existingUser, { status: 200 })
-      }
-    }
+    const user = await createUser(userData)
 
-    if (body.wallet_address) {
-      const existingUser = await getUserByWalletAddress(body.wallet_address)
-      if (existingUser) {
-        console.log("User with this wallet address already exists:", existingUser)
-        return NextResponse.json(existingUser, { status: 200 })
-      }
-    }
-
-    console.log("Creating new user...")
-    const newUser = await createUser(body)
-
-    if (!newUser) {
-      console.error("Failed to create user")
+    if (!user) {
       return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
     }
 
-    console.log("User created successfully:", newUser)
-    return NextResponse.json(newUser, { status: 201 })
+    return NextResponse.json(user)
   } catch (error) {
     console.error("Error creating user:", error)
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 })

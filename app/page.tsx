@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext"
 
 export default function Home() {
   const router = useRouter()
-  const { user, status, connectWallet, logout } = useAuth()
+  const { user, status, signInWithGoogle, logout, connectWallet } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [entered, setEntered] = useState(false)
   const entranceRef = useRef<HTMLDivElement>(null)
@@ -33,7 +33,7 @@ export default function Home() {
     }, 500)
   }
 
-  const truncateAddress = (address: string | undefined) => {
+  const truncateAddress = (address: string | null) => {
     if (!address) return "Connect Wallet"
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
   }
