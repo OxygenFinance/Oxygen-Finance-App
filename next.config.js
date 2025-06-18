@@ -8,10 +8,6 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ["avatars.dicebear.com", "api.dicebear.com"],
-  },
-  experimental: {
-    serverComponentsExternalPackages: ["@neondatabase/serverless"],
   },
 }
 

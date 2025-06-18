@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import { ethers } from "ethers"
-import { ChevronLeft, ChevronRight, X, Info, Play, Pause } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, Info, Play, Heart, MessageCircle, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/contexts/WalletContext"
 import { NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI } from "@/utils/contractConfig"
 import { toast } from "react-toastify"
+import { Card, CardContent } from "@/components/ui/card"
 
 // Add the bubble video background and enhance animations
 export default function GalleryPage() {
@@ -23,6 +24,7 @@ export default function GalleryPage() {
   const controls = useAnimation()
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
   const [playingVideos, setPlayingVideos] = useState<{ [key: string]: boolean }>({})
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function GalleryPage() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [viewingArtwork])
+  }, [viewingArtwork, rooms])
 
   // Add a timeout to hide the bubble video after 10 seconds
   useEffect(() => {
@@ -204,7 +206,7 @@ export default function GalleryPage() {
       )}
 
       {/* 3D Gallery */}
-      <div className="pt-20 h-screen relative z-30" ref={galleryRef}>
+      {/* <div className="pt-20 h-screen relative z-30" ref={galleryRef}>
         <div className="relative h-full w-full perspective-2000">
           <AnimatePresence mode="wait">
             <motion.div
@@ -451,194 +453,291 @@ export default function GalleryPage() {
                 </motion.div>
 
                 <motion.div
-                  className="ceiling"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1 }}
-                >
-                  {/* Ceiling lights */}
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="ceiling-light"
-                      style={{
-                        left: `${10 + i * 20}%`,
-                      }}
-                      animate={{
-                        opacity: [0.4, 0.8, 0.4],
-                        boxShadow: [
-                          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
-                          "0 0 40px rgba(219, 39, 119, 0.5), 0 0 80px rgba(124, 58, 237, 0.3)",
-                          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
-                        ],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
-                        delay: i * 0.5,
-                      }}
-                    />
-                  ))}
-                </motion.div>
+  className = "ceiling"
+  initial={{ opacity: 0 }
+}
+animate={{ opacity: 1 }
+}
+                  transition=
+{
+  duration: 1
+}
+>
+{
+  /* Ceiling lights */
+}
+{
+  Array.from({ length: 5 }).map((_, i) => (
+    <motion.div
+      key={i}
+      className="ceiling-light"
+      style={{
+        left: `${10 + i * 20}%`,
+      }}
+      animate={{
+        opacity: [0.4, 0.8, 0.4],
+        boxShadow: [
+          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
+          "0 0 40px rgba(219, 39, 119, 0.5), 0 0 80px rgba(124, 58, 237, 0.3)",
+          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
+        ],
+      }}
+      transition={{
+        duration: 4,
+        repeat: Number.POSITIVE_INFINITY,
+        delay: i * 0.5,
+      }}
+    />
+  ))
+}
+</motion.div>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation Controls */}
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center z-10 space-x-4">
-            <Button
-              variant="outline"
-              className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
-              onClick={() => navigateRoom("prev")}
-            >
-              <ChevronLeft />
-              Previous Room
-            </Button>
+{
+  /* Navigation Controls */
+}
+;<div className="absolute bottom-8 left-0 right-0 flex justify-center items-center z-10 space-x-4">
+  <Button
+    variant="outline"
+    className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
+    onClick={() => navigateRoom("prev")}
+  >
+    <ChevronLeft />
+    Previous Room
+  </Button>
 
-            <div className="flex space-x-2">
-              {rooms.map((_, index) => (
-                <motion.button
-                  key={index}
-                  className={`w-3 h-3 rounded-full ${index === activeRoom ? "bg-pink-500" : "bg-white/30"}`}
-                  onClick={() => setActiveRoom(index)}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  animate={
-                    index === activeRoom
-                      ? {
-                          scale: [1, 1.2, 1],
-                          boxShadow: [
-                            "0 0 0px rgba(219, 39, 119, 0.5)",
-                            "0 0 10px rgba(219, 39, 119, 0.8)",
-                            "0 0 0px rgba(219, 39, 119, 0.5)",
-                          ],
-                        }
-                      : {}
-                  }
-                  transition={{
-                    duration: 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                  }}
-                />
-              ))}
+  <div className="flex space-x-2">
+    {rooms.map((_, index) => (
+      <motion.button
+        key={index}
+        className={`w-3 h-3 rounded-full ${index === activeRoom ? "bg-pink-500" : "bg-white/30"}`}
+        onClick={() => setActiveRoom(index)}
+        whileHover={{ scale: 1.2 }}
+        whileTap={{ scale: 0.9 }}
+        animate={
+          index === activeRoom
+            ? {
+                scale: [1, 1.2, 1],
+                boxShadow: [
+                  "0 0 0px rgba(219, 39, 119, 0.5)",
+                  "0 0 10px rgba(219, 39, 119, 0.8)",
+                  "0 0 0px rgba(219, 39, 119, 0.5)",
+                ],
+              }
+            : {}
+        }
+        transition={{
+          duration: 2,
+          repeat: Number.POSITIVE_INFINITY,
+        }}
+      />
+    ))}
+  </div>
+
+  <Button
+    variant="outline"
+    className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
+    onClick={() => navigateRoom("next")}
+  >
+    Next Room
+    <ChevronRight />
+  </Button>
+</div>
+</div>
+      </div> */}
+
+      <div className="min-h-screen bg-black text-white py-20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="text-center mb-12"
+            initial=
+{
+  opacity: 0, y
+  : 20
+}
+animate={{ opacity: 1, y: 0 }
+}
+            transition=
+{
+  duration: 0.8
+}
+>
+            <h1 className="text-5xl font-bold mb-4">
+              Video <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">HUB</span>
+            </h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Discover amazing video content from talented creators around the world
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+{
+  sampleVideos.map((video, index) => (
+    <motion.div
+      key={video.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+    >
+      <Card className="bg-gray-900/50 border-gray-800 hover:border-purple-500/50 transition-all duration-300">
+        <CardContent className="p-0">
+          <div className="relative group">
+            <img
+              src={video.thumbnail || "/placeholder.svg?height=200&width=350"}
+              alt={video.title}
+              className="w-full h-48 object-cover rounded-t-lg"
+            />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-t-lg">
+              <Button
+                size="lg"
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={() => setSelectedVideo(video.id)}
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Play Video
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <h3 className="text-xl font-semibold mb-2">{video.title}</h3>
+            <p className="text-gray-400 mb-4 line-clamp-2">{video.description}</p>
+
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <span>By {video.creator}</span>
+              <span>{video.views} views</span>
             </div>
 
-            <Button
-              variant="outline"
-              className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
-              onClick={() => navigateRoom("next")}
-            >
-              Next Room
-              <ChevronRight />
-            </Button>
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
+              <div className="flex items-center space-x-4">
+                <button className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors">
+                  <Heart className="h-4 w-4" />
+                  <span>{video.likes}</span>
+                </button>
+                <button className="flex items-center space-x-1 text-gray-400 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{video.comments}</span>
+                </button>
+              </div>
+              <button className="text-gray-400 hover:text-purple-500 transition-colors">
+                <Share2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  ))
+}
+</div>
         </div>
       </div>
 
-      {/* Artwork Viewer Modal */}
-      <AnimatePresence>
-        {viewingArtwork && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row">
-              <motion.div
-                className="flex-1 p-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+{
+  /* Artwork Viewer Modal */
+}
+;<AnimatePresence>
+  {viewingArtwork && (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row">
+        <motion.div
+          className="flex-1 p-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <video src={viewingArtwork.videoSrc} controls autoPlay className="w-full h-full object-contain rounded-lg" />
+        </motion.div>
+
+        <AnimatePresence>
+          {showInfo && (
+            <motion.div
+              className="w-full md:w-96 bg-gray-900 p-6 rounded-lg md:ml-4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+            >
+              <h2 className="text-2xl font-bold mb-2">{viewingArtwork.title}</h2>
+              <p className="text-gray-400 mb-4">By {viewingArtwork.artist}</p>
+              <p className="mb-4">{viewingArtwork.description}</p>
+
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-400">Medium</div>
+                  <div>{viewingArtwork.medium}</div>
+                  <div className="text-gray-400">Year</div>
+                  <div>{viewingArtwork.year}</div>
+                  <div className="text-gray-400">Price</div>
+                  <div>{viewingArtwork.price} MATIC</div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 mb-4"
+                onClick={() => handleMint(viewingArtwork)}
+                disabled={isMinting}
               >
-                <video
-                  src={viewingArtwork.videoSrc}
-                  controls
-                  autoPlay
-                  className="w-full h-full object-contain rounded-lg"
-                />
-              </motion.div>
+                {isMinting ? "Minting..." : "Mint This Video"}
+              </Button>
 
-              <AnimatePresence>
-                {showInfo && (
-                  <motion.div
-                    className="w-full md:w-96 bg-gray-900 p-6 rounded-lg md:ml-4"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                  >
-                    <h2 className="text-2xl font-bold mb-2">{viewingArtwork.title}</h2>
-                    <p className="text-gray-400 mb-4">By {viewingArtwork.artist}</p>
-                    <p className="mb-4">{viewingArtwork.description}</p>
-
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Details</h3>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-gray-400">Medium</div>
-                        <div>{viewingArtwork.medium}</div>
-                        <div className="text-gray-400">Year</div>
-                        <div>{viewingArtwork.year}</div>
-                        <div className="text-gray-400">Price</div>
-                        <div>{viewingArtwork.price} MATIC</div>
+              {/* Comments Section */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Comments</h3>
+                <div className="space-y-3 max-h-40 overflow-y-auto mb-4">
+                  {viewingArtwork.comments?.map((comment, index) => (
+                    <div key={index} className="bg-gray-800 p-2 rounded">
+                      <div className="flex items-center mb-1">
+                        <div className="w-6 h-6 rounded-full bg-purple-500 mr-2"></div>
+                        <p className="text-sm font-medium">{comment.user}</p>
                       </div>
+                      <p className="text-sm text-gray-300">{comment.text}</p>
                     </div>
+                  )) || <p className="text-gray-500 text-sm">No comments yet. Be the first to comment!</p>}
+                </div>
 
-                    <Button
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 mb-4"
-                      onClick={() => handleMint(viewingArtwork)}
-                      disabled={isMinting}
-                    >
-                      {isMinting ? "Minting..." : "Mint This Video"}
-                    </Button>
+                <div className="flex">
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                  <Button className="rounded-l-none bg-purple-500 hover:bg-purple-600">Post</Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                    {/* Comments Section */}
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-2">Comments</h3>
-                      <div className="space-y-3 max-h-40 overflow-y-auto mb-4">
-                        {viewingArtwork.comments?.map((comment, index) => (
-                          <div key={index} className="bg-gray-800 p-2 rounded">
-                            <div className="flex items-center mb-1">
-                              <div className="w-6 h-6 rounded-full bg-purple-500 mr-2"></div>
-                              <p className="text-sm font-medium">{comment.user}</p>
-                            </div>
-                            <p className="text-sm text-gray-300">{comment.text}</p>
-                          </div>
-                        )) || <p className="text-gray-500 text-sm">No comments yet. Be the first to comment!</p>}
-                      </div>
+        <button
+          className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
+          onClick={() => setViewingArtwork(null)}
+        >
+          <X />
+        </button>
 
-                      <div className="flex">
-                        <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        />
-                        <Button className="rounded-l-none bg-purple-500 hover:bg-purple-600">Post</Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        <button
+          className="absolute bottom-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          <Info />
+        </button>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
-              <button
-                className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
-                onClick={() => setViewingArtwork(null)}
-              >
-                <X />
-              </button>
-
-              <button
-                className="absolute bottom-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
-                onClick={() => setShowInfo(!showInfo)}
-              >
-                <Info />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Enhanced CSS for 3D effects */}
-      <style jsx>{`
+{
+  /* Enhanced CSS for 3D effects */
+}
+;<style jsx>{`
         .perspective-2000 {
           perspective: 2000px;
         }
@@ -806,9 +905,73 @@ export default function GalleryPage() {
           margin: 0;
         }
       `}</style>
-    </div>
+</div>
   )
 }
+
+// Sample video data
+const sampleVideos = [
+  {
+    id: "1",
+    title: "Web3 Explained: The Future of Internet",
+    description: "A comprehensive guide to understanding Web3 technology and its implications for the future.",
+    creator: "Video Creator Pro",
+    thumbnail: "/gallery-image1.png",
+    views: "12.5K",
+    likes: 892,
+    comments: 156,
+  },
+  {
+    id: "2",
+    title: "DeFi vs Traditional Banking",
+    description: "Comparing decentralized finance with traditional banking systems.",
+    creator: "Crypto Filmmaker",
+    thumbnail: "/gallery-image2.png",
+    views: "8.3K",
+    likes: 654,
+    comments: 89,
+  },
+  {
+    id: "3",
+    title: "NFT Market Analysis 2024",
+    description: "Deep dive into the current NFT market trends and future predictions.",
+    creator: "Tech Reviewer",
+    thumbnail: "/gallery-image3.png",
+    views: "15.7K",
+    likes: 1203,
+    comments: 234,
+  },
+  {
+    id: "4",
+    title: "Smart Contracts Tutorial",
+    description: "Learn how to create and deploy smart contracts on Ethereum.",
+    creator: "DeFi Educator",
+    thumbnail: "/gallery-image4.png",
+    views: "9.1K",
+    likes: 567,
+    comments: 78,
+  },
+  {
+    id: "5",
+    title: "Crypto Trading Strategies",
+    description: "Professional trading strategies for cryptocurrency markets.",
+    creator: "NFT Artist",
+    thumbnail: "/gallery-image1.png",
+    views: "11.2K",
+    likes: 789,
+    comments: 145,
+  },
+  {
+    id: "6",
+    title: "Blockchain Development Guide",
+    description: "Complete guide to becoming a blockchain developer.",
+    creator: "Video Creator Pro",
+    thumbnail: "/gallery-image2.png",
+    views: "13.8K",
+    likes: 945,
+    comments: 187,
+  },
+]
 
 // Types
 interface Comment {
@@ -828,6 +991,9 @@ interface Artwork {
   price: string
   likes: number
   comments?: Comment[]
+  creator?: string
+  views?: string
+  thumbnail?: string
 }
 
 interface Room {
