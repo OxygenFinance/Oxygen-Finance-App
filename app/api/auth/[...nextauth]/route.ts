@@ -14,30 +14,12 @@ const handler = NextAuth({
       version: "2.0",
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET || "default-secret-for-development",
+  debug: process.env.NODE_ENV !== "production",
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id
-      }
-      if (account) {
-        token.provider = account.provider
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string
-        session.user.provider = token.provider as string
-      }
-      return session
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key",
-  debug: process.env.NODE_ENV === "development",
 })
 
 export { handler as GET, handler as POST }

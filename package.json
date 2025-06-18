@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "dev": "next dev",
     "lint": "next lint",
     "seed": "ts-node --project tsconfig.json scripts/run-seed.ts",
     "seed-profiles": "ts-node --project tsconfig.json scripts/run-seed-profiles.ts",
+    "start": "next start",
     "test-db": "ts-node --project tsconfig.json scripts/test-connection.ts"
   },
   "dependencies": {
