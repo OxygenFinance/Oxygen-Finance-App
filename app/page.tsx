@@ -113,8 +113,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            Video{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">HUB</span>
+            Digital Art{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Gallery</span>
           </motion.h2>
 
           <motion.p
@@ -123,8 +123,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            Step into our virtual hub showcasing the finest video content and digital media from creators around the
-            world
+            Step into our virtual gallery showcasing the finest digital art and comics from creators around the world
           </motion.p>
 
           <motion.div
@@ -137,7 +136,7 @@ export default function Home() {
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6"
               size="lg"
             >
-              Enter Hub <ArrowRight className="ml-2" />
+              Enter Gallery <ArrowRight className="ml-2" />
             </Button>
           </motion.div>
         </div>
@@ -167,7 +166,7 @@ export default function Home() {
                 <div className="doorway">
                   <Link href="/gallery">
                     <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 animate-pulse">
-                      Enter Hub
+                      Enter Gallery
                     </Button>
                   </Link>
                 </div>
