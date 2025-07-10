@@ -1,12 +1,15 @@
 {
-  "name": "oxygen-finance-video-hub",
+  "name": "oxygen-finance",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "seed": "ts-node --project tsconfig.json scripts/run-seed.ts",
+    "seed-profiles": "ts-node --project tsconfig.json scripts/run-seed-profiles.ts",
+    "start": "next start",
+    "test-db": "ts-node --project tsconfig.json scripts/test-connection.ts"
   },
   "dependencies": {
     "@auth/core": "latest",
@@ -14,10 +17,8 @@
     "@emotion/is-prop-valid": "latest",
     "@neondatabase/serverless": "latest",
     "@radix-ui/react-avatar": "latest",
-    "@radix-ui/react-label": "latest",
     "@radix-ui/react-slider": "latest",
-    "@radix-ui/react-slot": "latest",
-    "@radix-ui/react-tabs": "latest",
+    "@radix-ui/react-switch": "latest",
     "@tailwindcss/aspect-ratio": "latest",
     "child_process": "latest",
     "class-variance-authority": "^0.7.1",
@@ -27,27 +28,27 @@
     "framer-motion": "latest",
     "js-sha3": "latest",
     "lucide-react": "^0.454.0",
-    "next": "14.2.16",
+    "next": "15.2.4",
     "next-auth": "latest",
-    "next-themes": "latest",
     "nodemailer": "latest",
     "path": "latest",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^19",
+    "react-dom": "^19",
     "react-toastify": "latest",
     "tailwind-merge": "^2.5.5",
+    "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
-    "eslint-config-next": "14.2.5",
+    "eslint-config-next": "^15.2.4",
     "postcss": "^8.5",
-    "tailwindcss": "^3.4.4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
