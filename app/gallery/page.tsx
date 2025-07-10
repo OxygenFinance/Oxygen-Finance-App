@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import { ethers } from "ethers"
-import { ChevronLeft, ChevronRight, X, Info, Play, Pause } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, Info, Play, Heart, MessageCircle, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/contexts/WalletContext"
 import { NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI } from "@/utils/contractConfig"
 import { toast } from "react-toastify"
+import { Card, CardContent } from "@/components/ui/card"
 
 // Add the bubble video background and enhance animations
 export default function GalleryPage() {
@@ -23,6 +24,506 @@ export default function GalleryPage() {
   const controls = useAnimation()
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
   const [playingVideos, setPlayingVideos] = useState<{ [key: string]: boolean }>({})
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
+
+  // Types
+  interface Comment {
+    user: string
+    text: string
+  }
+
+  interface Artwork {
+    id: string
+    title: string
+    artist: string
+    description: string
+    image: string
+    videoSrc: string
+    medium: string
+    year: number
+    price: string
+    likes: number
+    comments?: Comment[]
+    creator?: string
+    views?: string
+    thumbnail?: string
+  }
+
+  interface Room {
+    id: string
+    name: string
+    description: string
+    artworks: Artwork[]
+  }
+
+  // Update the sample data for gallery rooms to use our new videos
+  const rooms: Room[] = [
+    {
+      id: "digital-video",
+      name: "Digital Video Gallery",
+      description: "Featuring cutting-edge digital videos from renowned creators",
+      artworks: [
+        {
+          id: "1",
+          title: "Neon City Dreams",
+          artist: "CyberArtist",
+          description:
+            "A futuristic cityscape bathed in neon lights, showcasing a vibrant cyberpunk aesthetic with flying vehicles and towering skyscrapers.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-1.mp4",
+          medium: "Digital Video",
+          year: 2023,
+          price: "2.5",
+          likes: 120,
+          comments: [
+            { user: "DigitalFan", text: "The lighting effects in this are incredible!" },
+            { user: "NeonLover", text: "I can almost feel the rain in this scene. Amazing work!" },
+          ],
+        },
+        {
+          id: "2",
+          title: "Ethereal Landscape",
+          artist: "DreamWeaver",
+          description:
+            "An otherworldly landscape featuring floating islands and surreal color palettes that challenge perception.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-2.mp4",
+          medium: "Digital Video",
+          year: 2022,
+          price: "1.8",
+          likes: 95,
+          comments: [
+            { user: "ArtCollector", text: "The color palette is absolutely mesmerizing." },
+            { user: "SurrealFan", text: "This reminds me of a dream I once had. Beautiful!" },
+          ],
+        },
+        {
+          id: "3",
+          title: "Abstract Emotions",
+          artist: "ColorMaster",
+          description: "An abstract representation of human emotions through vibrant colors and dynamic shapes.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-3.mp4",
+          medium: "Digital Video",
+          year: 2023,
+          price: "3.2",
+          likes: 85,
+          comments: [{ user: "EmotionalViewer", text: "I can feel the joy and sadness intertwined. Powerful." }],
+        },
+        {
+          id: "4",
+          title: "Cosmic Journey",
+          artist: "StarGazer",
+          description: "A breathtaking view of deep space with nebulae, stars, and cosmic phenomena.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/video-4.mp4",
+          medium: "Digital Video",
+          year: 2022,
+          price: "2.7",
+          likes: 150,
+          comments: [
+            { user: "SpaceEnthusiast", text: "The detail in the nebula is astounding!" },
+            { user: "GalaxyQuest", text: "I could stare at this for hours. Truly captivating." },
+          ],
+        },
+        {
+          id: "5",
+          title: "Digital Flora",
+          artist: "NatureTech",
+          description: "Hyperrealistic digital plants that blend natural elements with technological components.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-5.mp4",
+          medium: "3D Video",
+          year: 2023,
+          price: "4.0",
+          likes: 110,
+          comments: [],
+        },
+        {
+          id: "6",
+          title: "Quantum Dreams",
+          artist: "MindScape",
+          description: "A surreal visualization of quantum physics concepts through dreamlike imagery.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-6.mp4",
+          medium: "Digital Video",
+          year: 2021,
+          price: "2.2",
+          likes: 75,
+          comments: [],
+        },
+        {
+          id: "7",
+          title: "Techno Organism",
+          artist: "BioDigital",
+          description:
+            "A fascinating blend of biological forms and technological elements creating a new form of digital life.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-7.mp4",
+          medium: "Digital Video",
+          year: 2023,
+          price: "3.5",
+          likes: 130,
+          comments: [],
+        },
+        {
+          id: "8",
+          title: "Cybernetic Pulse",
+          artist: "NeuralArtist",
+          description: "A rhythmic visualization of data flowing through neural networks.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/bubble-fish.mp4",
+          medium: "Digital Video",
+          year: 2023,
+          price: "2.9",
+          likes: 88,
+          comments: [],
+        },
+        {
+          id: "9",
+          title: "Virtual Ecosystem",
+          artist: "DigitalNaturalist",
+          description: "A self-contained digital ecosystem with evolving virtual creatures.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-1.mp4",
+          medium: "Interactive Video",
+          year: 2022,
+          price: "5.0",
+          likes: 200,
+          comments: [],
+        },
+        {
+          id: "10",
+          title: "Holographic Memories",
+          artist: "RetroFuturist",
+          description: "Nostalgic scenes reimagined as futuristic holographic projections.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-2.mp4",
+          medium: "Digital Video",
+          year: 2023,
+          price: "3.7",
+          likes: 145,
+          comments: [],
+        },
+        {
+          id: "11",
+          title: "Fractal Dimensions",
+          artist: "InfinityCreator",
+          description: "Endlessly zooming fractal patterns that reveal new worlds within worlds.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-3.mp4",
+          medium: "Digital Video",
+          year: 2022,
+          price: "2.8",
+          likes: 170,
+          comments: [],
+        },
+      ],
+    },
+    {
+      id: "comic-video",
+      name: "Comic Video Showcase",
+      description: "Celebrating the best in digital comic videos and illustration",
+      artworks: [
+        {
+          id: "12",
+          title: "Hero's Journey",
+          artist: "ComicMaster",
+          description:
+            "A dynamic comic video showcasing a superhero in mid-flight against a dramatic cityscape backdrop.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/video-4.mp4",
+          medium: "Digital Comic Video",
+          year: 2023,
+          price: "2.8",
+          likes: 135,
+          comments: [],
+        },
+        {
+          id: "13",
+          title: "Villain's Lair",
+          artist: "DarkIllustrator",
+          description:
+            "A detailed video of a supervillain's secret headquarters with intricate machinery and ominous lighting.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-5.mp4",
+          medium: "Digital Video",
+          year: 2022,
+          price: "3.0",
+          likes: 110,
+          comments: [],
+        },
+        {
+          id: "14",
+          title: "Epic Battle Scene",
+          artist: "ActionArtist",
+          description: "A high-energy battle scene between heroes and villains with dynamic poses and special effects.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-6.mp4",
+          medium: "Digital Comic Video",
+          year: 2023,
+          price: "2.5",
+          likes: 125,
+          comments: [],
+        },
+        {
+          id: "15",
+          title: "Character Design: Mystic",
+          artist: "CharacterPro",
+          description: "A detailed character design video for a mystical character with various poses and expressions.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-7.mp4",
+          medium: "Digital Character Video",
+          year: 2022,
+          price: "1.9",
+          likes: 95,
+          comments: [],
+        },
+        {
+          id: "16",
+          title: "Comic Cover Video",
+          artist: "CoverMaster",
+          description: "A striking comic book cover video featuring dramatic composition and eye-catching typography.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/bubble-fish.mp4",
+          medium: "Digital Cover Video",
+          year: 2023,
+          price: "3.5",
+          likes: 140,
+          comments: [],
+        },
+        {
+          id: "17",
+          title: "Manga Style Scene",
+          artist: "MangaCreator",
+          description: "A beautifully rendered manga-style video with expressive characters and detailed backgrounds.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-1.mp4",
+          medium: "Digital Manga Video",
+          year: 2022,
+          price: "2.2",
+          likes: 115,
+          comments: [],
+        },
+        {
+          id: "18",
+          title: "Storyboard Sequence",
+          artist: "StoryArtist",
+          description: "A professional storyboard sequence showing a dramatic chase scene with dynamic camera angles.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-2.mp4",
+          medium: "Digital Storyboard",
+          year: 2023,
+          price: "2.0",
+          likes: 85,
+          comments: [],
+        },
+        {
+          id: "19",
+          title: "Comic Animation",
+          artist: "FrameByFrame",
+          description: "A short animated sequence bringing comic panels to life with smooth transitions.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-3.mp4",
+          medium: "Digital Animation",
+          year: 2022,
+          price: "3.2",
+          likes: 130,
+          comments: [],
+        },
+        {
+          id: "20",
+          title: "Superhero Team-Up",
+          artist: "EnsembleMaster",
+          description: "An epic group shot of superheroes uniting against a common threat.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/video-4.mp4",
+          medium: "Digital Comic Video",
+          year: 2023,
+          price: "4.0",
+          likes: 175,
+          comments: [],
+        },
+        {
+          id: "21",
+          title: "Origin Story",
+          artist: "NarrativeArtist",
+          description: "A visual narrative depicting the origin of a new superhero character.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-5.mp4",
+          medium: "Digital Comic Video",
+          year: 2022,
+          price: "2.7",
+          likes: 120,
+          comments: [],
+        },
+        {
+          id: "22",
+          title: "Comic World Building",
+          artist: "UniverseCreator",
+          description: "A detailed exploration of a fictional comic universe with maps and character relationships.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-6.mp4",
+          medium: "Digital World-Building",
+          year: 2023,
+          price: "3.8",
+          likes: 145,
+          comments: [],
+        },
+      ],
+    },
+    {
+      id: "animated-nft",
+      name: "Animated NFT Collection",
+      description: "Cutting-edge animated digital collectibles",
+      artworks: [
+        {
+          id: "23",
+          title: "Hypnotic Loops",
+          artist: "LoopMaster",
+          description: "A mesmerizing animated loop with geometric patterns that continuously transform and evolve.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-7.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "4.5",
+          likes: 190,
+          comments: [],
+        },
+        {
+          id: "24",
+          title: "Evolving Creature",
+          artist: "DigitalEvolution",
+          description: "An animated digital creature that evolves through different forms in a seamless loop.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/bubble-fish.mp4",
+          medium: "Animated NFT",
+          year: 2022,
+          price: "5.0",
+          likes: 210,
+          comments: [],
+        },
+        {
+          id: "25",
+          title: "Particle Symphony",
+          artist: "ParticleMaster",
+          description:
+            "A beautiful dance of particles responding to an invisible force, creating mesmerizing patterns.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-1.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "3.8",
+          likes: 165,
+          comments: [],
+        },
+        {
+          id: "26",
+          title: "Glitch Video Animation",
+          artist: "GlitchMaster",
+          description: "A stylized animation incorporating digital glitches and artifacts as artistic elements.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-2.mp4",
+          medium: "Animated NFT",
+          year: 2022,
+          price: "3.2",
+          likes: 140,
+          comments: [],
+        },
+        {
+          id: "27",
+          title: "Holographic Portrait",
+          artist: "HoloArtist",
+          description: "A futuristic holographic portrait that shifts and changes based on viewing angle.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-3.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "6.0",
+          likes: 230,
+          comments: [],
+        },
+        {
+          id: "28",
+          title: "Weather System",
+          artist: "ElementalArtist",
+          description: "An animated miniature weather system with clouds, rain, and lightning in a continuous cycle.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/video-4.mp4",
+          medium: "Animated NFT",
+          year: 2022,
+          price: "4.2",
+          likes: 175,
+          comments: [],
+        },
+        {
+          id: "29",
+          title: "Cybernetic Bloom",
+          artist: "TechnoFlorist",
+          description: "A digital flower that blooms and transforms with cybernetic elements and glowing effects.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-5.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "5.5",
+          likes: 195,
+          comments: [],
+        },
+        {
+          id: "30",
+          title: "Liquid Metal",
+          artist: "MetalMorphosis",
+          description: "A mesmerizing animation of liquid metal forming and reforming into different shapes.",
+          image: "/gallery-image2.png",
+          videoSrc: "/videos/video-6.mp4",
+          medium: "Animated NFT",
+          year: 2022,
+          price: "4.8",
+          likes: 185,
+          comments: [],
+        },
+        {
+          id: "31",
+          title: "Cosmic Dance",
+          artist: "GalacticAnimator",
+          description: "An animated sequence of celestial bodies performing a choreographed cosmic ballet.",
+          image: "/gallery-image3.png",
+          videoSrc: "/videos/video-7.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "5.2",
+          likes: 205,
+          comments: [],
+        },
+        {
+          id: "32",
+          title: "Digital Heartbeat",
+          artist: "PulseCreator",
+          description: "A rhythmic animation synchronized to a heartbeat with pulsating colors and shapes.",
+          image: "/gallery-image4.png",
+          videoSrc: "/videos/bubble-fish.mp4",
+          medium: "Animated NFT",
+          year: 2022,
+          price: "3.9",
+          likes: 160,
+          comments: [],
+        },
+        {
+          id: "33",
+          title: "Neon Cascade",
+          artist: "LightFlowArtist",
+          description: "A flowing cascade of neon lights that create an ever-changing abstract composition.",
+          image: "/gallery-image1.png",
+          videoSrc: "/videos/video-1.mp4",
+          medium: "Animated NFT",
+          year: 2023,
+          price: "4.7",
+          likes: 180,
+          comments: [],
+        },
+      ],
+    },
+  ]
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -43,7 +544,7 @@ export default function GalleryPage() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [viewingArtwork])
+  }, [viewingArtwork, rooms])
 
   // Add a timeout to hide the bubble video after 10 seconds
   useEffect(() => {
@@ -130,8 +631,71 @@ export default function GalleryPage() {
     }
   }
 
+  const sampleVideos = [
+    {
+      id: "1",
+      title: "Web3 Explained: The Future of Internet",
+      description: "A comprehensive guide to understanding Web3 technology and its implications for the future.",
+      creator: "Video Creator Pro",
+      thumbnail: "/gallery-image1.png",
+      views: "12.5K",
+      likes: 892,
+      comments: 156,
+    },
+    {
+      id: "2",
+      title: "DeFi vs Traditional Banking",
+      description: "Comparing decentralized finance with traditional banking systems.",
+      creator: "Crypto Filmmaker",
+      thumbnail: "/gallery-image2.png",
+      views: "8.3K",
+      likes: 654,
+      comments: 89,
+    },
+    {
+      id: "3",
+      title: "NFT Market Analysis 2024",
+      description: "Deep dive into the current NFT market trends and future predictions.",
+      creator: "Tech Reviewer",
+      thumbnail: "/gallery-image3.png",
+      views: "15.7K",
+      likes: 1203,
+      comments: 234,
+    },
+    {
+      id: "4",
+      title: "Smart Contracts Tutorial",
+      description: "Learn how to create and deploy smart contracts on Ethereum.",
+      creator: "DeFi Educator",
+      thumbnail: "/gallery-image4.png",
+      views: "9.1K",
+      likes: 567,
+      comments: 78,
+    },
+    {
+      id: "5",
+      title: "Crypto Trading Strategies",
+      description: "Professional trading strategies for cryptocurrency markets.",
+      creator: "NFT Artist",
+      thumbnail: "/gallery-image1.png",
+      views: "11.2K",
+      likes: 789,
+      comments: 145,
+    },
+    {
+      id: "6",
+      title: "Blockchain Development Guide",
+      description: "Complete guide to becoming a blockchain developer.",
+      creator: "Video Creator Pro",
+      thumbnail: "/gallery-image2.png",
+      views: "13.8K",
+      likes: 945,
+      comments: 187,
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <>
       {/* Header */}
       <header className="bg-black bg-opacity-50 backdrop-blur-md py-4 sticky top-0 z-50">
         <div className="container mx-auto px-4 flex justify-between items-center">
@@ -168,7 +732,7 @@ export default function GalleryPage() {
       {/* Bubble Video Background */}
       {showBubbleVideo && (
         <div className="fixed inset-0 z-10 pointer-events-none">
-          <video src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mixkit_v2_07453-o3w4hXcuCMAiltKY13e4eapmCwBPTM.mp4" autoPlay muted loop className="w-full h-full object-cover opacity-40"></video>
+          <video src="/bubble-video.mp4" autoPlay muted loop className="w-full h-full object-cover opacity-40"></video>
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70"></div>
         </div>
       )}
@@ -204,7 +768,7 @@ export default function GalleryPage() {
       )}
 
       {/* 3D Gallery */}
-      <div className="pt-20 h-screen relative z-30" ref={galleryRef}>
+      {/* <div className="pt-20 h-screen relative z-30" ref={galleryRef}>
         <div className="relative h-full w-full perspective-2000">
           <AnimatePresence mode="wait">
             <motion.div
@@ -451,194 +1015,279 @@ export default function GalleryPage() {
                 </motion.div>
 
                 <motion.div
+  \
                   className="ceiling"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1 }}
+                  initial=
+  opacity: 0
+  \
+                  animate=
+  opacity: 1
+  \
+                  transition=
+  duration: 1,
+  \
                 >
-                  {/* Ceiling lights */}
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="ceiling-light"
-                      style={{
-                        left: `${10 + i * 20}%`,
-                      }}
-                      animate={{
-                        opacity: [0.4, 0.8, 0.4],
-                        boxShadow: [
-                          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
-                          "0 0 40px rgba(219, 39, 119, 0.5), 0 0 80px rgba(124, 58, 237, 0.3)",
-                          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
-                        ],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
-                        delay: i * 0.5,
-                      }}
-                    />
-                  ))}
-                </motion.div>
+  Array.from({ length: 5 }).map((_, i) => (
+    <motion.div
+      key={i}
+      className="ceiling-light"
+      style={{
+        left: `${10 + i * 20}%`,
+      }}
+      animate={{
+        opacity: [0.4, 0.8, 0.4],
+        boxShadow: [
+          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
+          "0 0 40px rgba(219, 39, 119, 0.5), 0 0 80px rgba(124, 58, 237, 0.3)",
+          "0 0 20px rgba(219, 39, 119, 0.3), 0 0 40px rgba(124, 58, 237, 0.2)",
+        ],
+      }}
+      transition={{
+        duration: 4,
+        repeat: Number.POSITIVE_INFINITY,
+        delay: i * 0.5,
+      }}
+    />
+  ))
+  </motion.div>
               </div>
             </motion.div>
           </AnimatePresence>
+  ;<div className="absolute bottom-8 left-0 right-0 flex justify-center items-center z-10 space-x-4">
+    <Button
+      variant="outline"
+      className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
+      onClick={() => navigateRoom("prev")}
+    >
+      <ChevronLeft />
+      Previous Room
+    </Button>
 
-          {/* Navigation Controls */}
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center z-10 space-x-4">
-            <Button
-              variant="outline"
-              className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
-              onClick={() => navigateRoom("prev")}
-            >
-              <ChevronLeft />
-              Previous Room
-            </Button>
+    <div className="flex space-x-2">
+      {rooms.map((_, index) => (
+        <motion.button
+          key={index}
+          className={`w-3 h-3 rounded-full ${index === activeRoom ? "bg-pink-500" : "bg-white/30"}`}
+          onClick={() => setActiveRoom(index)}
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
+          animate={
+            index === activeRoom
+              ? {
+                  scale: [1, 1.2, 1],
+                  boxShadow: [
+                    "0 0 0px rgba(219, 39, 119, 0.5)",
+                    "0 0 10px rgba(219, 39, 119, 0.8)",
+                    "0 0 0px rgba(219, 39, 119, 0.5)",
+                  ],
+                }
+              : {}
+          }
+          transition={{
+            duration: 2,
+            repeat: Number.POSITIVE_INFINITY,
+          }}
+        />
+      ))}
+    </div>
 
-            <div className="flex space-x-2">
-              {rooms.map((_, index) => (
-                <motion.button
-                  key={index}
-                  className={`w-3 h-3 rounded-full ${index === activeRoom ? "bg-pink-500" : "bg-white/30"}`}
-                  onClick={() => setActiveRoom(index)}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  animate={
-                    index === activeRoom
-                      ? {
-                          scale: [1, 1.2, 1],
-                          boxShadow: [
-                            "0 0 0px rgba(219, 39, 119, 0.5)",
-                            "0 0 10px rgba(219, 39, 119, 0.8)",
-                            "0 0 0px rgba(219, 39, 119, 0.5)",
-                          ],
-                        }
-                      : {}
-                  }
-                  transition={{
-                    duration: 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                  }}
+    <Button
+      variant="outline"
+      className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
+      onClick={() => navigateRoom("next")}
+    >
+      Next Room
+      <ChevronRight />
+    </Button>
+  </div>
+  </div>
+      </div> */
+}
+;<div className="min-h-screen bg-black text-white py-20">
+  <div className="container mx-auto px-4">
+    <motion.div
+      className="text-center mb-12"
+      initial={{
+        opacity: 0,
+        y: 20,
+      }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.8,
+      }}
+    >
+      <h1 className="text-5xl font-bold mb-4">
+        Video <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">HUB</span>
+      </h1>
+      <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+        Discover amazing video content from talented creators around the world
+      </p>
+    </motion.div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {sampleVideos.map((video, index) => (
+        <motion.div
+          key={video.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: index * 0.1 }}
+        >
+          <Card className="bg-gray-900/50 border-gray-800 hover:border-purple-500/50 transition-all duration-300">
+            <CardContent className="p-0">
+              <div className="relative group">
+                <img
+                  src={video.thumbnail || "/placeholder.svg?height=200&width=350"}
+                  alt={video.title}
+                  className="w-full h-48 object-cover rounded-t-lg"
                 />
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              className="border-white/30 bg-black/50 backdrop-blur-sm hover:bg-white/20"
-              onClick={() => navigateRoom("next")}
-            >
-              Next Room
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Artwork Viewer Modal */}
-      <AnimatePresence>
-        {viewingArtwork && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row">
-              <motion.div
-                className="flex-1 p-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <video
-                  src={viewingArtwork.videoSrc}
-                  controls
-                  autoPlay
-                  className="w-full h-full object-contain rounded-lg"
-                />
-              </motion.div>
-
-              <AnimatePresence>
-                {showInfo && (
-                  <motion.div
-                    className="w-full md:w-96 bg-gray-900 p-6 rounded-lg md:ml-4"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-t-lg">
+                  <Button
+                    size="lg"
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={() => setSelectedVideo(video.id)}
                   >
-                    <h2 className="text-2xl font-bold mb-2">{viewingArtwork.title}</h2>
-                    <p className="text-gray-400 mb-4">By {viewingArtwork.artist}</p>
-                    <p className="mb-4">{viewingArtwork.description}</p>
+                    <Play className="mr-2 h-5 w-5" />
+                    Play Video
+                  </Button>
+                </div>
+              </div>
 
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Details</h3>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-gray-400">Medium</div>
-                        <div>{viewingArtwork.medium}</div>
-                        <div className="text-gray-400">Year</div>
-                        <div>{viewingArtwork.year}</div>
-                        <div className="text-gray-400">Price</div>
-                        <div>{viewingArtwork.price} MATIC</div>
-                      </div>
-                    </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold mb-2">{video.title}</h3>
+                <p className="text-gray-400 mb-4 line-clamp-2">{video.description}</p>
 
-                    <Button
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 mb-4"
-                      onClick={() => handleMint(viewingArtwork)}
-                      disabled={isMinting}
-                    >
-                      {isMinting ? "Minting..." : "Mint This Video"}
-                    </Button>
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>By {video.creator}</span>
+                  <span>{video.views} views</span>
+                </div>
 
-                    {/* Comments Section */}
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-2">Comments</h3>
-                      <div className="space-y-3 max-h-40 overflow-y-auto mb-4">
-                        {viewingArtwork.comments?.map((comment, index) => (
-                          <div key={index} className="bg-gray-800 p-2 rounded">
-                            <div className="flex items-center mb-1">
-                              <div className="w-6 h-6 rounded-full bg-purple-500 mr-2"></div>
-                              <p className="text-sm font-medium">{comment.user}</p>
-                            </div>
-                            <p className="text-sm text-gray-300">{comment.text}</p>
-                          </div>
-                        )) || <p className="text-gray-500 text-sm">No comments yet. Be the first to comment!</p>}
-                      </div>
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
+                  <div className="flex items-center space-x-4">
+                    <button className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors">
+                      <Heart className="h-4 w-4" />
+                      <span>{video.likes}</span>
+                    </button>
+                    <button className="flex items-center space-x-1 text-gray-400 hover:text-blue-500 transition-colors">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{video.comments}</span>
+                    </button>
+                  </div>
+                  <button className="text-gray-400 hover:text-purple-500 transition-colors">
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+</div>
 
-                      <div className="flex">
-                        <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        />
-                        <Button className="rounded-l-none bg-purple-500 hover:bg-purple-600">Post</Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+{
+  /* Artwork Viewer Modal */
+}
+;<AnimatePresence>
+  {viewingArtwork && (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row">
+        <motion.div
+          className="flex-1 p-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <video src={viewingArtwork.videoSrc} controls autoPlay className="w-full h-full object-contain rounded-lg" />
+        </motion.div>
 
-              <button
-                className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
-                onClick={() => setViewingArtwork(null)}
+        <AnimatePresence>
+          {showInfo && (
+            <motion.div
+              className="w-full md:w-96 bg-gray-900 p-6 rounded-lg md:ml-4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+            >
+              <h2 className="text-2xl font-bold mb-2">{viewingArtwork.title}</h2>
+              <p className="text-gray-400 mb-4">By {viewingArtwork.artist}</p>
+              <p className="mb-4">{viewingArtwork.description}</p>
+
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-400">Medium</div>
+                  <div>{viewingArtwork.medium}</div>
+                  <div className="text-gray-400">Year</div>
+                  <div>{viewingArtwork.year}</div>
+                  <div className="text-gray-400">Price</div>
+                  <div>{viewingArtwork.price} MATIC</div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 mb-4"
+                onClick={() => handleMint(viewingArtwork)}
+                disabled={isMinting}
               >
-                <X />
-              </button>
+                {isMinting ? "Minting..." : "Mint This Video"}
+              </Button>
 
-              <button
-                className="absolute bottom-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
-                onClick={() => setShowInfo(!showInfo)}
-              >
-                <Info />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {/* Comments Section */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Comments</h3>
+                <div className="space-y-3 max-h-40 overflow-y-auto mb-4">
+                  {viewingArtwork.comments?.map((comment, index) => (
+                    <div key={index} className="bg-gray-800 p-2 rounded">
+                      <div className="flex items-center mb-1">
+                        <div className="w-6 h-6 rounded-full bg-purple-500 mr-2"></div>
+                        <p className="text-sm font-medium">{comment.user}</p>
+                      </div>
+                      <p className="text-sm text-gray-300">{comment.text}</p>
+                    </div>
+                  )) || <p className="text-gray-500 text-sm">No comments yet. Be the first to comment!</p>}
+                </div>
 
-      {/* Enhanced CSS for 3D effects */}
-      <style jsx>{`
+                <div className="flex">
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                  <Button className="rounded-l-none bg-purple-500 hover:bg-purple-600">Post</Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
+          onClick={() => setViewingArtwork(null)}
+        >
+          <X />
+        </button>
+
+        <button
+          className="absolute bottom-4 right-4 bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors"
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          <Info />
+        </button>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+{
+  /* Enhanced CSS for 3D effects */
+}
+;<style jsx>{`
         .perspective-2000 {
           perspective: 2000px;
         }
@@ -806,501 +1455,6 @@ export default function GalleryPage() {
           margin: 0;
         }
       `}</style>
-    </div>
+</>
   )
 }
-
-// Types
-interface Comment {
-  user: string
-  text: string
-}
-
-interface Artwork {
-  id: string
-  title: string
-  artist: string
-  description: string
-  image: string
-  videoSrc: string
-  medium: string
-  year: number
-  price: string
-  likes: number
-  comments?: Comment[]
-}
-
-interface Room {
-  id: string
-  name: string
-  description: string
-  artworks: Artwork[]
-}
-
-// Update the sample data for gallery rooms to use our new videos
-const rooms: Room[] = [
-  {
-    id: "digital-video",
-    name: "Digital Video Gallery",
-    description: "Featuring cutting-edge digital videos from renowned creators",
-    artworks: [
-      {
-        id: "1",
-        title: "Neon City Dreams",
-        artist: "CyberArtist",
-        description:
-          "A futuristic cityscape bathed in neon lights, showcasing a vibrant cyberpunk aesthetic with flying vehicles and towering skyscrapers.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0112-M0SFHfaNksxvpOF3V9Vgv1LhRu1Cjq.mp4",
-        medium: "Digital Video",
-        year: 2023,
-        price: "2.5",
-        likes: 120,
-        comments: [
-          { user: "DigitalFan", text: "The lighting effects in this are incredible!" },
-          { user: "NeonLover", text: "I can almost feel the rain in this scene. Amazing work!" },
-        ],
-      },
-      {
-        id: "2",
-        title: "Ethereal Landscape",
-        artist: "DreamWeaver",
-        description:
-          "An otherworldly landscape featuring floating islands and surreal color palettes that challenge perception.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0122-kqbNFIal7yu2aPReoKJg7rnraqrJOz.mp4",
-        medium: "Digital Video",
-        year: 2022,
-        price: "1.8",
-        likes: 95,
-        comments: [
-          { user: "ArtCollector", text: "The color palette is absolutely mesmerizing." },
-          { user: "SurrealFan", text: "This reminds me of a dream I once had. Beautiful!" },
-        ],
-      },
-      {
-        id: "3",
-        title: "Abstract Emotions",
-        artist: "ColorMaster",
-        description: "An abstract representation of human emotions through vibrant colors and dynamic shapes.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0120-xbpAEeSP2plufOT0is6bDI2Xpt8rZO.mp4",
-        medium: "Digital Video",
-        year: 2023,
-        price: "3.2",
-        likes: 85,
-        comments: [{ user: "EmotionalViewer", text: "I can feel the joy and sadness intertwined. Powerful." }],
-      },
-      {
-        id: "4",
-        title: "Cosmic Journey",
-        artist: "StarGazer",
-        description: "A breathtaking view of deep space with nebulae, stars, and cosmic phenomena.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0113-lE3nhD5yEfx1l6eiApKdE1ooQut2Ol.mp4",
-        medium: "Digital Video",
-        year: 2022,
-        price: "2.7",
-        likes: 150,
-        comments: [
-          { user: "SpaceEnthusiast", text: "The detail in the nebula is astounding!" },
-          { user: "GalaxyQuest", text: "I could stare at this for hours. Truly captivating." },
-        ],
-      },
-      {
-        id: "5",
-        title: "Digital Flora",
-        artist: "NatureTech",
-        description: "Hyperrealistic digital plants that blend natural elements with technological components.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0118-eOXZRFG76Ehva47gPwPJEOrS7iFA3b.mp4",
-        medium: "3D Video",
-        year: 2023,
-        price: "4.0",
-        likes: 110,
-        comments: [],
-      },
-      {
-        id: "6",
-        title: "Quantum Dreams",
-        artist: "MindScape",
-        description: "A surreal visualization of quantum physics concepts through dreamlike imagery.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0111-0Etxq4dDNL1W7odJtDjd0K2MuLwF0M.mp4",
-        medium: "Digital Video",
-        year: 2021,
-        price: "2.2",
-        likes: 75,
-        comments: [],
-      },
-      {
-        id: "7",
-        title: "Techno Organism",
-        artist: "BioDigital",
-        description:
-          "A fascinating blend of biological forms and technological elements creating a new form of digital life.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0117-vfLvHLQLBZCzUZnLHfwU12UjzfAv7r.mp4",
-        medium: "Digital Video",
-        year: 2023,
-        price: "3.5",
-        likes: 130,
-        comments: [],
-      },
-      {
-        id: "8",
-        title: "Cybernetic Pulse",
-        artist: "NeuralArtist",
-        description: "A rhythmic visualization of data flowing through neural networks.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0115-SxCFWViPFpIFvYFTbOsgtPYBqNjv9X.mp4",
-        medium: "Digital Video",
-        year: 2023,
-        price: "2.9",
-        likes: 88,
-        comments: [],
-      },
-      {
-        id: "9",
-        title: "Virtual Ecosystem",
-        artist: "DigitalNaturalist",
-        description: "A self-contained digital ecosystem with evolving virtual creatures.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0112-M0SFHfaNksxvpOF3V9Vgv1LhRu1Cjq.mp4",
-        medium: "Interactive Video",
-        year: 2022,
-        price: "5.0",
-        likes: 200,
-        comments: [],
-      },
-      {
-        id: "10",
-        title: "Holographic Memories",
-        artist: "RetroFuturist",
-        description: "Nostalgic scenes reimagined as futuristic holographic projections.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0122-kqbNFIal7yu2aPReoKJg7rnraqrJOz.mp4",
-        medium: "Digital Video",
-        year: 2023,
-        price: "3.7",
-        likes: 145,
-        comments: [],
-      },
-      {
-        id: "11",
-        title: "Fractal Dimensions",
-        artist: "InfinityCreator",
-        description: "Endlessly zooming fractal patterns that reveal new worlds within worlds.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0120-xbpAEeSP2plufOT0is6bDI2Xpt8rZO.mp4",
-        medium: "Digital Video",
-        year: 2022,
-        price: "2.8",
-        likes: 170,
-        comments: [],
-      },
-    ],
-  },
-  {
-    id: "comic-video",
-    name: "Comic Video Showcase",
-    description: "Celebrating the best in digital comic videos and illustration",
-    artworks: [
-      {
-        id: "12",
-        title: "Hero's Journey",
-        artist: "ComicMaster",
-        description:
-          "A dynamic comic video showcasing a superhero in mid-flight against a dramatic cityscape backdrop.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0113-lE3nhD5yEfx1l6eiApKdE1ooQut2Ol.mp4",
-        medium: "Digital Comic Video",
-        year: 2023,
-        price: "2.8",
-        likes: 135,
-        comments: [],
-      },
-      {
-        id: "13",
-        title: "Villain's Lair",
-        artist: "DarkIllustrator",
-        description:
-          "A detailed video of a supervillain's secret headquarters with intricate machinery and ominous lighting.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0118-eOXZRFG76Ehva47gPwPJEOrS7iFA3b.mp4",
-        medium: "Digital Video",
-        year: 2022,
-        price: "3.0",
-        likes: 110,
-        comments: [],
-      },
-      {
-        id: "14",
-        title: "Epic Battle Scene",
-        artist: "ActionArtist",
-        description: "A high-energy battle scene between heroes and villains with dynamic poses and special effects.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0111-0Etxq4dDNL1W7odJtDjd0K2MuLwF0M.mp4",
-        medium: "Digital Comic Video",
-        year: 2023,
-        price: "2.5",
-        likes: 125,
-        comments: [],
-      },
-      {
-        id: "15",
-        title: "Character Design: Mystic",
-        artist: "CharacterPro",
-        description: "A detailed character design video for a mystical character with various poses and expressions.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0117-vfLvHLQLBZCzUZnLHfwU12UjzfAv7r.mp4",
-        medium: "Digital Character Video",
-        year: 2022,
-        price: "1.9",
-        likes: 95,
-        comments: [],
-      },
-      {
-        id: "16",
-        title: "Comic Cover Video",
-        artist: "CoverMaster",
-        description: "A striking comic book cover video featuring dramatic composition and eye-catching typography.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0115-SxCFWViPFpIFvYFTbOsgtPYBqNjv9X.mp4",
-        medium: "Digital Cover Video",
-        year: 2023,
-        price: "3.5",
-        likes: 140,
-        comments: [],
-      },
-      {
-        id: "17",
-        title: "Manga Style Scene",
-        artist: "MangaCreator",
-        description: "A beautifully rendered manga-style video with expressive characters and detailed backgrounds.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0112-M0SFHfaNksxvpOF3V9Vgv1LhRu1Cjq.mp4",
-        medium: "Digital Manga Video",
-        year: 2022,
-        price: "2.2",
-        likes: 115,
-        comments: [],
-      },
-      {
-        id: "18",
-        title: "Storyboard Sequence",
-        artist: "StoryArtist",
-        description: "A professional storyboard sequence showing a dramatic chase scene with dynamic camera angles.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0122-kqbNFIal7yu2aPReoKJg7rnraqrJOz.mp4",
-        medium: "Digital Storyboard",
-        year: 2023,
-        price: "2.0",
-        likes: 85,
-        comments: [],
-      },
-      {
-        id: "19",
-        title: "Comic Animation",
-        artist: "FrameByFrame",
-        description: "A short animated sequence bringing comic panels to life with smooth transitions.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0120-xbpAEeSP2plufOT0is6bDI2Xpt8rZO.mp4",
-        medium: "Digital Animation",
-        year: 2022,
-        price: "3.2",
-        likes: 130,
-        comments: [],
-      },
-      {
-        id: "20",
-        title: "Superhero Team-Up",
-        artist: "EnsembleMaster",
-        description: "An epic group shot of superheroes uniting against a common threat.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0113-lE3nhD5yEfx1l6eiApKdE1ooQut2Ol.mp4",
-        medium: "Digital Comic Video",
-        year: 2023,
-        price: "4.0",
-        likes: 175,
-        comments: [],
-      },
-      {
-        id: "21",
-        title: "Origin Story",
-        artist: "NarrativeArtist",
-        description: "A visual narrative depicting the origin of a new superhero character.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0118-eOXZRFG76Ehva47gPwPJEOrS7iFA3b.mp4",
-        medium: "Digital Comic Video",
-        year: 2022,
-        price: "2.7",
-        likes: 120,
-        comments: [],
-      },
-      {
-        id: "22",
-        title: "Comic World Building",
-        artist: "UniverseCreator",
-        description: "A detailed exploration of a fictional comic universe with maps and character relationships.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0111-0Etxq4dDNL1W7odJtDjd0K2MuLwF0M.mp4",
-        medium: "Digital World-Building",
-        year: 2023,
-        price: "3.8",
-        likes: 145,
-        comments: [],
-      },
-    ],
-  },
-  {
-    id: "animated-nft",
-    name: "Animated NFT Collection",
-    description: "Cutting-edge animated digital collectibles",
-    artworks: [
-      {
-        id: "23",
-        title: "Hypnotic Loops",
-        artist: "LoopMaster",
-        description: "A mesmerizing animated loop with geometric patterns that continuously transform and evolve.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0117-vfLvHLQLBZCzUZnLHfwU12UjzfAv7r.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "4.5",
-        likes: 190,
-        comments: [],
-      },
-      {
-        id: "24",
-        title: "Evolving Creature",
-        artist: "DigitalEvolution",
-        description: "An animated digital creature that evolves through different forms in a seamless loop.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0115-SxCFWViPFpIFvYFTbOsgtPYBqNjv9X.mp4",
-        medium: "Animated NFT",
-        year: 2022,
-        price: "5.0",
-        likes: 210,
-        comments: [],
-      },
-      {
-        id: "25",
-        title: "Particle Symphony",
-        artist: "ParticleMaster",
-        description: "A beautiful dance of particles responding to an invisible force, creating mesmerizing patterns.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0112-M0SFHfaNksxvpOF3V9Vgv1LhRu1Cjq.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "3.8",
-        likes: 165,
-        comments: [],
-      },
-      {
-        id: "26",
-        title: "Glitch Video Animation",
-        artist: "GlitchMaster",
-        description: "A stylized animation incorporating digital glitches and artifacts as artistic elements.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0122-kqbNFIal7yu2aPReoKJg7rnraqrJOz.mp4",
-        medium: "Animated NFT",
-        year: 2022,
-        price: "3.2",
-        likes: 140,
-        comments: [],
-      },
-      {
-        id: "27",
-        title: "Holographic Portrait",
-        artist: "HoloArtist",
-        description: "A futuristic holographic portrait that shifts and changes based on viewing angle.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0120-xbpAEeSP2plufOT0is6bDI2Xpt8rZO.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "6.0",
-        likes: 230,
-        comments: [],
-      },
-      {
-        id: "28",
-        title: "Weather System",
-        artist: "ElementalArtist",
-        description: "An animated miniature weather system with clouds, rain, and lightning in a continuous cycle.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0113-lE3nhD5yEfx1l6eiApKdE1ooQut2Ol.mp4",
-        medium: "Animated NFT",
-        year: 2022,
-        price: "4.2",
-        likes: 175,
-        comments: [],
-      },
-      {
-        id: "29",
-        title: "Cybernetic Bloom",
-        artist: "TechnoFlorist",
-        description: "A digital flower that blooms and transforms with cybernetic elements and glowing effects.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0118-eOXZRFG76Ehva47gPwPJEOrS7iFA3b.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "5.5",
-        likes: 195,
-        comments: [],
-      },
-      {
-        id: "30",
-        title: "Liquid Metal",
-        artist: "MetalMorphosis",
-        description: "A mesmerizing animation of liquid metal forming and reforming into different shapes.",
-        image: "/gallery-image2.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0111-0Etxq4dDNL1W7odJtDjd0K2MuLwF0M.mp4",
-        medium: "Animated NFT",
-        year: 2022,
-        price: "4.8",
-        likes: 185,
-        comments: [],
-      },
-      {
-        id: "31",
-        title: "Cosmic Dance",
-        artist: "GalacticAnimator",
-        description: "An animated sequence of celestial bodies performing a choreographed cosmic ballet.",
-        image: "/gallery-image3.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0117-vfLvHLQLBZCzUZnLHfwU12UjzfAv7r.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "5.2",
-        likes: 205,
-        comments: [],
-      },
-      {
-        id: "32",
-        title: "Digital Heartbeat",
-        artist: "PulseCreator",
-        description: "A rhythmic animation synchronized to a heartbeat with pulsating colors and shapes.",
-        image: "/gallery-image4.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0115-SxCFWViPFpIFvYFTbOsgtPYBqNjv9X.mp4",
-        medium: "Animated NFT",
-        year: 2022,
-        price: "3.9",
-        likes: 160,
-        comments: [],
-      },
-      {
-        id: "33",
-        title: "Neon Cascade",
-        artist: "LightFlowArtist",
-        description: "A flowing cascade of neon lights that create an ever-changing abstract composition.",
-        image: "/gallery-image1.png",
-        videoSrc: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/VID-20250401-WA0112-M0SFHfaNksxvpOF3V9Vgv1LhRu1Cjq.mp4",
-        medium: "Animated NFT",
-        year: 2023,
-        price: "4.7",
-        likes: 180,
-        comments: [],
-      },
-    ],
-  },
-]

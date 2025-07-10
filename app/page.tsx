@@ -2,15 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { User, ArrowRight, ArrowDown } from "lucide-react"
+import { ArrowRight, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/AuthContext"
 
-export default function Home() {
-  const router = useRouter()
-  const { user, status, signInWithGoogle, logout, connectWallet } = useAuth()
+export default function HomePage() {
   const [scrolled, setScrolled] = useState(false)
   const [entered, setEntered] = useState(false)
   const entranceRef = useRef<HTMLDivElement>(null)
@@ -33,67 +29,8 @@ export default function Home() {
     }, 500)
   }
 
-  const truncateAddress = (address: string | null) => {
-    if (!address) return "Connect Wallet"
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-  }
-
-  const navigateToProfile = () => {
-    router.push("/profile")
-  }
-
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      {/* Header */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "bg-black bg-opacity-80 backdrop-blur-md py-4" : "bg-transparent py-6"
-        }`}
-      >
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="Oxygen Finance Logo" className="h-10 mr-3" />
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-              Oxygen Finance
-            </h1>
-          </div>
-          {/* Navigation */}
-          <nav className="flex items-center space-x-4">
-            <Link href="/gallery" className="hover:text-pink-400 transition-colors">
-              Gallery
-            </Link>
-            <Link href="/creators" className="hover:text-pink-400 transition-colors">
-              Creators
-            </Link>
-            <Link href="/create" className="hover:text-pink-400 transition-colors">
-              Create
-            </Link>
-            {status === "authenticated" && user?.walletAddress ? (
-              <>
-                <Button
-                  onClick={navigateToProfile}
-                  variant="outline"
-                  className="border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-white flex items-center"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Button>
-                <Button onClick={logout} variant="outline" className="border-gray-500 text-gray-300">
-                  {truncateAddress(user.walletAddress)}
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={connectWallet}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-              >
-                Connect Wallet
-              </Button>
-            )}
-          </nav>
-        </div>
-      </header>
-
       {/* Hero Section with 3D Building Entrance */}
       <section className="h-screen relative flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 w-full h-full">
@@ -113,8 +50,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            Digital Art{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Gallery</span>
+            Video{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">HUB</span>
           </motion.h2>
 
           <motion.p
@@ -123,7 +60,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            Step into our virtual gallery showcasing the finest digital art and comics from creators around the world
+            Step into our virtual Video HUB showcasing the finest video content from creators around the world
           </motion.p>
 
           <motion.div
@@ -136,7 +73,7 @@ export default function Home() {
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6"
               size="lg"
             >
-              Enter Gallery <ArrowRight className="ml-2" />
+              Enter Video HUB <ArrowRight className="ml-2" />
             </Button>
           </motion.div>
         </div>
@@ -166,7 +103,7 @@ export default function Home() {
                 <div className="doorway">
                   <Link href="/gallery">
                     <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 animate-pulse">
-                      Enter Gallery
+                      Enter Video HUB
                     </Button>
                   </Link>
                 </div>
@@ -176,15 +113,15 @@ export default function Home() {
         </motion.section>
       </div>
 
-      {/* Featured Artists Section */}
+      {/* Featured Creators Section */}
       <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold mb-12 text-center">Featured Creators</h2>
+          <h2 className="text-4xl font-bold mb-12 text-center">Featured Video Creators</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredArtists.map((artist, index) => (
+            {featuredCreators.map((creator, index) => (
               <motion.div
-                key={artist.id}
+                key={creator.id}
                 className="bg-gray-900/50 backdrop-blur-sm rounded-xl overflow-hidden hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -192,20 +129,20 @@ export default function Home() {
               >
                 <div className="h-64 overflow-hidden">
                   <img
-                    src={artist.image || "/placeholder.svg"}
-                    alt={artist.name}
+                    src={creator.image || "/placeholder.svg?height=256&width=400"}
+                    alt={creator.name}
                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">{artist.name}</h3>
-                  <p className="text-gray-400 mb-4">{artist.bio}</p>
-                  <Link href={`/creator/${artist.id}`}>
+                  <h3 className="text-xl font-semibold mb-2">{creator.name}</h3>
+                  <p className="text-gray-400 mb-4">{creator.bio}</p>
+                  <Link href={`/creator/${creator.id}`}>
                     <Button
                       variant="outline"
-                      className="w-full border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white"
+                      className="w-full border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white bg-transparent"
                     >
-                      View Gallery
+                      View Videos
                     </Button>
                   </Link>
                 </div>
@@ -215,7 +152,10 @@ export default function Home() {
 
           <div className="text-center mt-12">
             <Link href="/creators">
-              <Button variant="outline" className="border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-white">
+              <Button
+                variant="outline"
+                className="border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-white bg-transparent"
+              >
                 View All Creators
               </Button>
             </Link>
@@ -223,114 +163,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-black py-12 border-t border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <div className="flex items-center">
-                <img src="/logo.png" alt="Oxygen Finance Logo" className="h-10 mr-3" />
-                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-                  Oxygen Finance
-                </h3>
-              </div>
-              <p className="text-gray-400 mt-2">The future of digital art galleries</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-6">
-              <Link href="/gallery" className="text-gray-400 hover:text-white transition-colors">
-                Gallery
-              </Link>
-              <Link href="/creators" className="text-gray-400 hover:text-white transition-colors">
-                Creators
-              </Link>
-              <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                About
-              </Link>
-              <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
-                Contact
-              </Link>
-            </div>
-          </div>
-
-          {/* Social Media Links */}
-          <div className="flex justify-center mt-8 space-x-6">
-            <a
-              href="https://X.com/Oxy_GenLabs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-twitter"
-              >
-                <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-              </svg>
-            </a>
-            <a
-              href="https://t.me/Oxygen_finance"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-send"
-              >
-                <path d="m22 2-7 20-4-9-9-4Z" />
-                <path d="M22 2 11 13" />
-              </svg>
-            </a>
-            <a
-              href="https://discord.gg/fBe5pzMx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="9" cy="12" r="1" />
-                <circle cx="15" cy="12" r="1" />
-                <path d="M7.5 7.5c3.5-1 5.5-1 9 0" />
-                <path d="M7.5 16.5c3.5 1 5.5 1 9 0" />
-                <path d="M15.5 17c0 1 1.5 3 2 3 1.5 0 2.833-1.667 3.5-3 .667-1.667.5-5.833 0-7.5-.5-1.667-1.5-4.5-7-4.5s-6.5 2.833-7 4.5c-.5 1.667-.667 5.833 0 7.5.667 1.333 2 3 3.5 3 .5 0 2-2 2-3" />
-              </svg>
-            </a>
-          </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Oxygen Finance. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
       {/* Custom CSS for 3D effects */}
-      <style jsx>{`
+      <style jsx global>{`
       .perspective-1000 {
         perspective: 1000px;
       }
@@ -429,8 +263,8 @@ export default function Home() {
   )
 }
 
-// Sample data for featured artists
-const featuredArtists = [
+// Sample data for featured video creators
+const featuredCreators = [
   {
     id: "1",
     name: "Neon Dreams",

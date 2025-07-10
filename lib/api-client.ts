@@ -1,373 +1,18 @@
-import { sql } from "@/lib/db"
-import { signIn } from "next-auth/react"
+// Simple API client functions without database dependencies
 
-// API namespace for all client-side API functions
-export const api = {
-  // User functions
-  getUserById: async (id: number): Promise<any | null> => {
-    try {
-      const result = await sql`
-        SELECT * FROM users 
-        WHERE id = ${id}
-      `
-      return result[0] || null
-    } catch (error) {
-      console.error("Error getting user by ID:", error)
-      return null
-    }
-  },
-
-  getUserByWalletAddress: async (walletAddress: string): Promise<any | null> => {
-    try {
-      const result = await sql`
-        SELECT * FROM users 
-        WHERE wallet_address = ${walletAddress}
-      `
-      return result[0] || null
-    } catch (error) {
-      console.error("Error getting user by wallet address:", error)
-      return null
-    }
-  },
-
-  createUser: async (userData: any): Promise<any | null> => {
-    try {
-      const result = await sql`
-        INSERT INTO users (
-          email, name, username, bio, avatar_url, twitter_id, wallet_address
-        ) VALUES (
-          ${userData.email || null}, 
-          ${userData.name || null}, 
-          ${userData.username || null}, 
-          ${userData.bio || null},
-          ${userData.avatar_url || null},
-          ${userData.twitter_id || null},
-          ${userData.wallet_address || null}
-        )
-        RETURNING *
-      `
-      return result[0]
-    } catch (error) {
-      console.error("Error creating user:", error)
-      return null
-    }
-  },
-
-  updateUser: async (id: number, userData: any): Promise<any | null> => {
-    try {
-      const result = await sql`
-        UPDATE users
-        SET 
-          email = COALESCE(${userData.email}, email),
-          name = COALESCE(${userData.name}, name),
-          username = COALESCE(${userData.username}, username),
-          bio = COALESCE(${userData.bio}, bio),
-          avatar_url = COALESCE(${userData.avatar_url}, avatar_url),
-          twitter_id = COALESCE(${userData.twitter_id}, twitter_id),
-          wallet_address = COALESCE(${userData.wallet_address}, wallet_address)
-        WHERE id = ${id}
-        RETURNING *
-      `
-      return result[0]
-    } catch (error) {
-      console.error("Error updating user:", error)
-      return null
-    }
-  },
-
-  // Artwork functions
-  getArtworkById: async (id: number): Promise<any | null> => {
-    try {
-      const result = await sql`
-        SELECT * FROM artworks 
-        WHERE id = ${id}
-      `
-      return result[0] || null
-    } catch (error) {
-      console.error("Error getting artwork by ID:", error)
-      return null
-    }
-  },
-
-  getArtworksByCreator: async (creatorId: number): Promise<any[]> => {
-    try {
-      return await sql`
-        SELECT * FROM artworks 
-        WHERE creator_id = ${creatorId}
-        ORDER BY created_at DESC
-      `
-    } catch (error) {
-      console.error("Error getting artworks by creator:", error)
-      return []
-    }
-  },
-
-  getAllArtworks: async (limit = 50, offset = 0): Promise<any[]> => {
-    try {
-      return await sql`
-        SELECT * FROM artworks 
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } catch (error) {
-      console.error("Error getting all artworks:", error)
-      return []
-    }
-  },
-
-  createArtwork: async (artworkData: any): Promise<any | null> => {
-    try {
-      if (!artworkData.title || !artworkData.media_url || !artworkData.creator_id) {
-        throw new Error("Missing required fields for artwork creation")
-      }
-
-      const result = await sql`
-        INSERT INTO artworks (
-          title, description, media_url, thumbnail_url, creator_id, token_id, contract_address
-        ) VALUES (
-          ${artworkData.title}, 
-          ${artworkData.description || null}, 
-          ${artworkData.media_url}, 
-          ${artworkData.thumbnail_url || null}, 
-          ${artworkData.creator_id}, 
-          ${artworkData.token_id || null},
-          ${artworkData.contract_address || null}
-        )
-        RETURNING *
-      `
-      return result[0]
-    } catch (error) {
-      console.error("Error creating artwork:", error)
-      return null
-    }
-  },
-
-  // Comment functions
-  getCommentsByArtwork: async (artworkId: number): Promise<any[]> => {
-    try {
-      return await sql`
-        SELECT c.*, u.name, u.username, u.avatar_url
-        FROM comments c
-        JOIN users u ON c.user_id = u.id
-        WHERE c.artwork_id = ${artworkId}
-        ORDER BY c.created_at DESC
-      `
-    } catch (error) {
-      console.error("Error getting comments by artwork:", error)
-      return []
-    }
-  },
-
-  createComment: async (commentData: {
-    artwork_id: number
-    user_id: number
-    content: string
-  }): Promise<any | null> => {
-    try {
-      const result = await sql`
-        INSERT INTO comments (
-          artwork_id, user_id, content
-        ) VALUES (
-          ${commentData.artwork_id},
-          ${commentData.user_id},
-          ${commentData.content}
-        )
-        RETURNING *
-      `
-      return result[0]
-    } catch (error) {
-      console.error("Error creating comment:", error)
-      return null
-    }
-  },
-
-  updateComment: async (id: number, content: string): Promise<any | null> => {
-    try {
-      const result = await sql`
-        UPDATE comments
-        SET content = ${content}
-        WHERE id = ${id}
-        RETURNING *
-      `
-      return result[0]
-    } catch (error) {
-      console.error("Error updating comment:", error)
-      return null
-    }
-  },
-
-  deleteComment: async (id: number): Promise<boolean> => {
-    try {
-      const result = await sql`
-        DELETE FROM comments
-        WHERE id = ${id}
-      `
-      return result.count > 0
-    } catch (error) {
-      console.error("Error deleting comment:", error)
-      return false
-    }
-  },
-
-  // Follow functions
-  isFollowing: async (followerId: number, followingId: number): Promise<boolean> => {
-    try {
-      const result = await sql`
-        SELECT * FROM follows
-        WHERE follower_id = ${followerId} AND following_id = ${followingId}
-      `
-      return result.length > 0
-    } catch (error) {
-      console.error("Error checking if following:", error)
-      return false
-    }
-  },
-
-  followUser: async (followerId: number, followingId: number): Promise<boolean> => {
-    try {
-      await sql`
-        INSERT INTO follows (follower_id, following_id)
-        VALUES (${followerId}, ${followingId})
-        ON CONFLICT (follower_id, following_id) DO NOTHING
-      `
-      return true
-    } catch (error) {
-      console.error("Error following user:", error)
-      return false
-    }
-  },
-
-  unfollowUser: async (followerId: number, followingId: number): Promise<boolean> => {
-    try {
-      await sql`
-        DELETE FROM follows
-        WHERE follower_id = ${followerId} AND following_id = ${followingId}
-      `
-      return true
-    } catch (error) {
-      console.error("Error unfollowing user:", error)
-      return false
-    }
-  },
-
-  getFollowers: async (userId: number): Promise<any[]> => {
-    try {
-      return await sql`
-        SELECT u.* FROM follows f
-        JOIN users u ON f.follower_id = u.id
-        WHERE f.following_id = ${userId}
-        ORDER BY f.created_at DESC
-      `
-    } catch (error) {
-      console.error("Error getting followers:", error)
-      return []
-    }
-  },
-
-  getFollowing: async (userId: number): Promise<any[]> => {
-    try {
-      return await sql`
-        SELECT u.* FROM follows f
-        JOIN users u ON f.following_id = u.id
-        WHERE f.follower_id = ${userId}
-        ORDER BY f.created_at DESC
-      `
-    } catch (error) {
-      console.error("Error getting following:", error)
-      return []
-    }
-  },
-
-  getFollowCounts: async (userId: number): Promise<{ followers: number; following: number }> => {
-    try {
-      const followers = await sql`
-        SELECT COUNT(*) as count FROM follows
-        WHERE following_id = ${userId}
-      `
-
-      const following = await sql`
-        SELECT COUNT(*) as count FROM follows
-        WHERE follower_id = ${userId}
-      `
-
-      return {
-        followers: Number.parseInt(followers[0].count),
-        following: Number.parseInt(following[0].count),
-      }
-    } catch (error) {
-      console.error("Error getting follow counts:", error)
-      return { followers: 0, following: 0 }
-    }
-  },
-}
-
-// Export individual functions directly
-export const getUserById = api.getUserById
-export const getUserByWalletAddress = api.getUserByWalletAddress
-export const createUser = api.createUser
-export const updateUser = api.updateUser
-export const getArtworkById = api.getArtworkById
-export const getArtworksByCreator = api.getArtworksByCreator
-export const getAllArtworks = api.getAllArtworks
-export const createArtwork = api.createArtwork
-export const getCommentsByArtwork = api.getCommentsByArtwork
-export const createComment = api.createComment
-export const updateComment = api.updateComment
-export const deleteComment = api.deleteComment
-export const hasUserLikedArtwork = api.hasUserLikedArtwork
-export const getLikesByArtwork = api.getLikesByArtwork
-export const likeArtwork = api.likeArtwork
-export const unlikeArtwork = api.unlikeArtwork
-export const isFollowing = api.isFollowing
-export const followUser = api.followUser
-export const unfollowUser = api.unfollowUser
-export const getFollowers = api.getFollowers
-export const getFollowing = api.getFollowing
-export const getFollowCounts = api.getFollowCounts
-
-export async function getUserByTwitter(twitter: string): Promise<User | null> {
-  try {
-    const response = await fetch(`/api/users/twitter/${twitter}`)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user by Twitter: ${response.statusText}`)
-    }
-    return await response.json()
-  } catch (error) {
-    console.error("Error fetching user by Twitter:", error)
-    return null
-  }
-}
-
-export async function connectTwitter(): Promise<void> {
-  try {
-    await signIn("twitter", { callbackUrl: "/profile" })
-  } catch (error) {
-    console.error("Error connecting Twitter:", error)
-    throw error
-  }
-}
-
-export type User = {
+export interface User {
   id: number
-  email?: string
   name?: string
   username?: string
+  email?: string
   bio?: string
   avatar_url?: string
   twitter_id?: string
   wallet_address?: string
-  created_at: Date
+  created_at: string
 }
 
-export type Comment = {
-  id: number
-  artwork_id: number
-  user_id: number
-  content: string
-  created_at: Date
-}
-
-export type Artwork = {
+export interface Video {
   id: number
   title: string
   description?: string
@@ -376,40 +21,337 @@ export type Artwork = {
   creator_id: number
   token_id?: string
   contract_address?: string
-  created_at: Date
+  created_at: string
 }
 
-export type Follow = {
+export interface Comment {
   id: number
-  follower_id: number
-  following_id: number
-  created_at: Date
-}
-
-export type Like = {
-  id: number
+  video_id: number
   user_id: number
-  artwork_id: number
-  created_at: Date
+  content: string
+  created_at: string
 }
 
-export type Wallet = {
-  id: number
-  user_id: number
-  address: string
-  encrypted_private_key?: string
-  created_at: Date
+// API functions
+export async function getUserById(id: number): Promise<User | null> {
+  try {
+    const response = await fetch(`/api/users/${id}`)
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching user:", error)
+    return null
+  }
+}
+
+export async function getVideoById(id: number): Promise<Video | null> {
+  try {
+    const response = await fetch(`/api/videos/${id}`)
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching video:", error)
+    return null
+  }
+}
+
+export async function getAllVideos(): Promise<Video[]> {
+  try {
+    const response = await fetch("/api/videos")
+    if (!response.ok) return []
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching videos:", error)
+    return []
+  }
+}
+
+export async function getVideosByCreator(creatorId: number): Promise<Video[]> {
+  try {
+    const response = await fetch(`/api/videos?creatorId=${creatorId}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching videos by creator:", error)
+    return []
+  }
+}
+
+export async function createVideo(videoData: Partial<Video>): Promise<Video | null> {
+  try {
+    const response = await fetch("/api/videos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(videoData),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error creating video:", error)
+    return null
+  }
+}
+
+export async function createUser(userData: Partial<User>): Promise<User | null> {
+  try {
+    const response = await fetch("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error creating user:", error)
+    return null
+  }
+}
+
+export async function getUserByWalletAddress(walletAddress: string): Promise<User | null> {
+  try {
+    const response = await fetch(`/api/users?walletAddress=${walletAddress}`)
+    if (!response.ok) return null
+    const users = await response.json()
+    return users.find((user: User) => user.wallet_address === walletAddress) || null
+  } catch (error) {
+    console.error("Error fetching user by wallet address:", error)
+    return null
+  }
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const result = await sql`
-      SELECT * FROM users 
-      WHERE email = ${email}
-    `
-    return result[0] || null
+    const response = await fetch(`/api/users?email=${email}`)
+    if (!response.ok) return null
+    const users = await response.json()
+    return users.find((user: User) => user.email === email) || null
   } catch (error) {
-    console.error("Error getting user by email:", error)
+    console.error("Error fetching user by email:", error)
     return null
+  }
+}
+
+export async function getUserByTwitter(twitter: string): Promise<User | null> {
+  try {
+    const response = await fetch(`/api/users/twitter/${twitter}`)
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching user by Twitter:", error)
+    return null
+  }
+}
+
+export async function updateUser(id: number, userData: Partial<User>): Promise<User | null> {
+  try {
+    const response = await fetch(`/api/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating user:", error)
+    return null
+  }
+}
+
+export async function getCommentsByVideo(videoId: number): Promise<Comment[]> {
+  try {
+    const response = await fetch(`/api/comments?videoId=${videoId}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching comments:", error)
+    return []
+  }
+}
+
+export async function createComment(commentData: {
+  video_id: number
+  user_id: number
+  content: string
+}): Promise<Comment | null> {
+  try {
+    const response = await fetch("/api/comments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(commentData),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error creating comment:", error)
+    return null
+  }
+}
+
+export async function updateComment(id: number, content: string): Promise<Comment | null> {
+  try {
+    const response = await fetch(`/api/comments/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch (error) {
+    console.error("Error updating comment:", error)
+    return null
+  }
+}
+
+export async function deleteComment(id: number): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/comments/${id}`, {
+      method: "DELETE",
+    })
+    return response.ok
+  } catch (error) {
+    console.error("Error deleting comment:", error)
+    return false
+  }
+}
+
+export async function isFollowing(followerId: number, followingId: number): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/follows/check?followerId=${followerId}&followingId=${followingId}`)
+    if (!response.ok) return false
+    const result = await response.json()
+    return result.isFollowing || false
+  } catch (error) {
+    console.error("Error checking follow status:", error)
+    return false
+  }
+}
+
+export async function followUser(followerId: number, followingId: number): Promise<boolean> {
+  try {
+    const response = await fetch("/api/follows", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ followerId, followingId }),
+    })
+    return response.ok
+  } catch (error) {
+    console.error("Error following user:", error)
+    return false
+  }
+}
+
+export async function unfollowUser(followerId: number, followingId: number): Promise<boolean> {
+  try {
+    const response = await fetch("/api/follows", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ followerId, followingId }),
+    })
+    return response.ok
+  } catch (error) {
+    console.error("Error unfollowing user:", error)
+    return false
+  }
+}
+
+export async function getFollowers(userId: number): Promise<User[]> {
+  try {
+    const response = await fetch(`/api/follows?type=followers&userId=${userId}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching followers:", error)
+    return []
+  }
+}
+
+export async function getFollowing(userId: number): Promise<User[]> {
+  try {
+    const response = await fetch(`/api/follows?type=following&userId=${userId}`)
+    if (!response.ok) return []
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching following:", error)
+    return []
+  }
+}
+
+export async function getFollowCounts(userId: number): Promise<{ followers: number; following: number }> {
+  try {
+    const response = await fetch(`/api/follows?type=counts&userId=${userId}`)
+    if (!response.ok) return { followers: 0, following: 0 }
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching follow counts:", error)
+    return { followers: 0, following: 0 }
+  }
+}
+
+// Legacy exports for backward compatibility
+export const getArtworkById = getVideoById
+export const getArtworksByCreator = getVideosByCreator
+export const getAllArtworks = getAllVideos
+export const createArtwork = createVideo
+export const getCommentsByArtwork = getCommentsByVideo
+export const hasUserLikedArtwork = () => Promise.resolve(false)
+export const getLikesByArtwork = () => Promise.resolve(0)
+export const likeArtwork = () => Promise.resolve(true)
+export const unlikeArtwork = () => Promise.resolve(true)
+
+// Export for backward compatibility
+export const api = {
+  getUserById,
+  getUserByWalletAddress,
+  getUserByEmail,
+  getUserByTwitter,
+  createUser,
+  updateUser,
+  getVideoById,
+  getAllVideos,
+  getVideosByCreator,
+  createVideo,
+  getCommentsByVideo,
+  createComment,
+  updateComment,
+  deleteComment,
+  isFollowing,
+  followUser,
+  unfollowUser,
+  getFollowers,
+  getFollowing,
+  getFollowCounts,
+  // Legacy aliases
+  getArtworkById: getVideoById,
+  getArtworksByCreator: getVideosByCreator,
+  getAllArtworks: getAllVideos,
+  createArtwork: createVideo,
+  getCommentsByArtwork: getCommentsByVideo,
+  hasUserLikedArtwork: () => Promise.resolve(false),
+  getLikesByArtwork: () => Promise.resolve(0),
+  likeArtwork: () => Promise.resolve(true),
+  unlikeArtwork: () => Promise.resolve(true),
+}
+
+export async function connectTwitter(): Promise<void> {
+  try {
+    // This would integrate with your auth system
+    window.location.href = "/api/auth/signin/twitter"
+  } catch (error) {
+    console.error("Error connecting Twitter:", error)
+    throw error
   }
 }

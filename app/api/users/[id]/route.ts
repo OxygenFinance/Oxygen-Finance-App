@@ -1,6 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+interface RouteParams {
+  params: {
+    id: string
+  }
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
   try {
     const userId = Number.parseInt(params.id)
 
@@ -8,13 +14,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
     }
 
-    // For now, return a simple response to fix the type error
-    return NextResponse.json({
+    // Simple mock response for now
+    const user = {
       id: userId,
-      name: "Sample User",
-      email: "user@example.com",
-      status: "success",
-    })
+      name: `User ${userId}`,
+      username: `user${userId}`,
+      email: `user${userId}@example.com`,
+      bio: "Video creator on Oxygen Finance",
+      avatar_url: `/placeholder.svg?height=100&width=100&seed=${userId}`,
+      created_at: new Date().toISOString(),
+    }
+
+    return NextResponse.json(user)
   } catch (error) {
     console.error("Error fetching user:", error)
     return NextResponse.json({ error: "Failed to fetch user" }, { status: 500 })

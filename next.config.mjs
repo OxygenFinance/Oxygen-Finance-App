@@ -1,26 +1,38 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Images configuration
   images: {
-    domains: ['api.dicebear.com', 'assets.mixkit.co', 'pbs.twimg.com'],
+    domains: ['api.dicebear.com', 'assets.mixkit.co', 'pbs.twimg.com', 'blob.v0.dev'],
     unoptimized: true,
   },
-  // Experimental features
   experimental: {
-    serverActions: true,
+    serverActions: {
+      allowedOrigins: ['localhost:3000', '*.vercel.app'],
+    },
   },
-  // Environment variables
-  env: {
-    NEXTAUTH_URL: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000",
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "supersecret",
-  },
-  // ESLint configuration
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: true,
+  },
+  // Add proper environment variable handling
+  env: {
+    NEXTAUTH_URL: process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'fallback-secret-key-for-development',
+  },
+  // Fix webpack configuration
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
   },
 }
 
